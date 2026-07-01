@@ -192,6 +192,16 @@ export default function App() {
   const activeSpreadObj = SPREADS.find(s => s.id === activeSpread);
   const spreadPositions = activeSpreadObj?.positions || [];
 
+  const summaryObj = composeSpreadSummary(drawnCards, activeSpread, interpretationContext);
+  const formattedSummaryText = summaryObj ? `
+[TỔNG QUAN TRẢI BÀI]
+- Tóm tắt chung: ${summaryObj.overview}
+- Bài học Arcana: ${summaryObj.arcanaAnalysis}
+- Tương tác Nguyên tố: ${summaryObj.elementAnalysis}
+- Dòng chảy liên kết: ${summaryObj.flowAnalysis}
+- Lời khuyên hành động: ${summaryObj.actionAdvice}
+`.trim() : "";
+
   if (loading) {
     return (
       <div className="app-loader-container" style={{ textAlign: 'center', marginTop: '100px' }}>
@@ -468,7 +478,7 @@ export default function App() {
           )}
 
           {/* Basic Interpretation Section */}
-          {drawnCards.length > 0 && !isDrawing && (
+          {drawnCards.length > 0 && !isDrawing && summaryObj && (
             <div className="interpretation-section glass-panel" style={{ marginTop: '32px' }}>
               <h2 className="results-title" style={{ fontSize: '20px', borderBottom: '1px solid rgba(229,193,88,0.2)', paddingBottom: '12px', marginBottom: '20px', textAlign: 'left' }}>
                 🔮 Luận giải cơ bản (Interpretation Overview)
@@ -486,11 +496,38 @@ export default function App() {
               </div>
 
               {/* Overall Summary */}
-              <div className="summary-box" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(212,175,55,0.1)', padding: '18px', borderRadius: '8px', marginBottom: '24px' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "'Cinzel', serif", letterSpacing: '0.5px' }}>Tổng quan trải bài</h4>
-                <p style={{ margin: 0, fontSize: '14px', color: '#dfdbf0', whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
-                  {composeSpreadSummary(drawnCards, activeSpread, interpretationContext)}
+              <div className="summary-box" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(212,175,55,0.15)', padding: '18px', borderRadius: '8px', marginBottom: '24px' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "'Cinzel', serif", letterSpacing: '0.5px' }}>Tóm tắt chung</h4>
+                <p style={{ margin: 0, fontSize: '14px', color: '#dfdbf0', lineHeight: '1.6' }}>
+                  {summaryObj.overview}
                 </p>
+              </div>
+
+              {/* Multi-dimensional analysis grid */}
+              <div className="analysis-dimensions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '32px' }}>
+                {/* 1. Arcana Lessons */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
+                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>🌟 Bài học Arcana</h5>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.arcanaAnalysis}</p>
+                </div>
+                
+                {/* 2. Element/Suit Balance */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
+                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>🧪 Tương tác Nguyên tố</h5>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.elementAnalysis}</p>
+                </div>
+
+                {/* 3. Positional Flow */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
+                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>🌊 Dòng chảy Trải bài</h5>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.flowAnalysis}</p>
+                </div>
+
+                {/* 4. Actionable Advice */}
+                <div style={{ background: 'rgba(229,193,88,0.04)', border: '1px solid rgba(229,193,88,0.15)', padding: '16px', borderRadius: '8px' }}>
+                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>⚡ Lời khuyên Hành động</h5>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#f3e5ab', lineHeight: '1.5', fontWeight: '500' }}>{summaryObj.actionAdvice}</p>
+                </div>
               </div>
 
               {/* Card by Card Interpretation */}
@@ -533,7 +570,7 @@ export default function App() {
               spreadName={SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh'}
               spreadPositions={spreadPositions}
               interpretationContext={CONTEXTS.find(c => c.id === interpretationContext)?.name}
-              interpretationSummary={composeSpreadSummary(drawnCards, activeSpread, interpretationContext)}
+              interpretationSummary={formattedSummaryText}
               getCardMeaning={getCardMeaning}
             />
           )}

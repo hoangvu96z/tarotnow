@@ -213,48 +213,99 @@ export function analyzeSpreadPatterns(drawnCards) {
 }
 
 /**
- * Generate short summary overview paragraph
+ * Generate a multi-dimensional, deep reading summary analysis object
  */
 export function composeSpreadSummary(drawnCards, spreadPresetId, context = "general") {
-  if (!drawnCards || drawnCards.length === 0) return "";
+  if (!drawnCards || drawnCards.length === 0) return null;
   
   const patterns = analyzeSpreadPatterns(drawnCards);
   const total = drawnCards.length;
-  const majorPct = Math.round((patterns.majorCount / total) * 100);
-  const revPct = Math.round((patterns.reversedCount / total) * 100);
+  const majorCount = patterns.majorCount;
+  const reversedCount = patterns.reversedCount;
   
-  let summary = "";
-  
-  // 1. Arcana/Reversed Overview
-  if (patterns.majorCount > 1) {
-    summary += `Trải bài có sự hiện diện lớn của các lá Ẩn chính (Major Arcana chiếm ${majorPct}%), báo hiệu đây là một giai đoạn mang tính bước ngoặt cuộc đời, mang năng lượng của số phận hoặc có các bài học lớn về tinh thần mà bạn cần phải trải qua. `;
-  } else {
-    summary += `Trải bài này tập trung nhiều vào các chi tiết, sự kiện và biến động thường nhật trong cuộc sống (do chiếm đa số là các lá Ẩn phụ - Minor Arcana). `;
-  }
-  
-  if (patterns.reversedCount > total / 2) {
-    summary += `Với tỷ lệ lá ngược cao (${revPct}%), năng lượng tổng thể cho thấy có sự ách tắc, trì hoãn hoặc các bài học nội tâm sâu sắc. Đây là lúc vũ trụ khuyên bạn nên dừng lại chiêm nghiệm, xoay nhận thức vào bên trong thay vì cố thúc ép hành động ra bên ngoài. `;
-  } else {
-    summary += `Các lá bài hầu hết ở trạng thái xuôi chỉ ra dòng năng lượng đang được giải phóng tự nhiên, các sự kiện và bài học đang hiển lộ rõ ràng trước mắt để bạn dễ dàng nắm bắt. `;
-  }
-  
-  // 2. Dominant Suit
-  if (patterns.dominantSuit) {
-    const suitVi = {
-      Cups: "bộ Cốc (Cups - đại diện cho cảm xúc, tình cảm và mối quan hệ trực giác)",
-      Pentacles: "bộ Tiền (Pentacles - đại diện cho công việc, vật chất, tiền bạc và sự ổn định thực tế)",
-      Swords: "bộ Kiếm (Swords - đại diện cho tâm trí, quyết định, thách thức và xung đột tư duy)",
-      Wands: "bộ Gậy (Wands - đại diện cho nhiệt huyết, đam mê, hành động và sáng tạo)"
-    };
-    summary += `Đặc biệt, sự chiếm ưu thế của ${suitVi[patterns.dominantSuit]} khẳng định rằng chủ đề chính của câu hỏi đang phụ thuộc nặng nề vào yếu tố này. `;
-  }
-  
-  if (patterns.courtCount > 1) {
-    summary += `Sự xuất hiện của nhiều lá hoàng gia (Court Cards) cho thấy các yếu tố liên quan tới con người, sức ảnh hưởng xã hội hoặc các tính cách/vai trò ứng xử đang tham gia mật thiết vào tình huống hiện tại của bạn. `;
-  }
-  
-  // 3. Consolidated Advice
-  summary += `\n\nLời khuyên chung từ vũ trụ dành cho bạn là hãy nhìn nhận vấn đề một cách khách quan, tích hợp các thông điệp từ vị trí trải bài. Hãy chuẩn bị tinh thần và trí óc sẵn sàng vì thông điệp này sẽ mở ra các hướng định hình giúp bạn tương tác tốt nhất với hành trình sắp tới.`;
+  // Count suits
+  const cupsCount = drawnCards.filter(c => c.suit === "Cups").length;
+  const wandsCount = drawnCards.filter(c => c.suit === "Wands").length;
+  const swordsCount = drawnCards.filter(c => c.suit === "Swords").length;
+  const pentaclesCount = drawnCards.filter(c => c.suit === "Pentacles").length;
 
-  return summary;
+  // 1. Overview
+  let overview = "";
+  if (majorCount >= total / 2) {
+    overview = `Trải bài mang năng lượng chuyển dịch rất lớn (chiếm ${Math.round(majorCount/total*100)}% Ẩn chính). Các sự kiện sắp tới mang tính chất tất yếu hoặc định mệnh, ảnh hưởng sâu sắc đến sự phát triển cá nhân của bạn.`;
+  } else {
+    overview = `Trải bài tập trung vào các hành động thực tế, cảm xúc thường ngày và công việc cụ thể (chủ yếu là Ẩn phụ). Các biến động nằm trong tầm kiểm soát của bạn nếu có sự chuẩn bị tốt.`;
+  }
+
+  // 2. Arcana & Reversed Analysis
+  let arcanaAnalysis = "";
+  if (majorCount > 0) {
+    arcanaAnalysis = `Có ${majorCount} lá Ẩn chính (Major Arcana). Điều này nhấn mạnh rằng tình huống hiện tại của bạn chứa đựng một bài học tinh thần quan trọng. Vũ trụ đang gửi thông điệp mang tính định hướng lâu dài chứ không chỉ là giải quyết sự vụ tạm thời.`;
+  } else {
+    arcanaAnalysis = "Trải bài toàn các lá Ẩn phụ (Minor Arcana), cho thấy tình huống hiện tại chịu ảnh hưởng lớn từ các thói quen hành vi, cảm xúc nhất thời hoặc các tương tác vật lý hàng ngày. Bạn hoàn toàn có khả năng xoay chuyển bằng ý chí cá nhân.";
+  }
+
+  if (reversedCount > total / 2) {
+    arcanaAnalysis += ` Tỷ lệ lá ngược cao (${Math.round(reversedCount/total*100)}%) cảnh báo rằng dòng năng lượng bên ngoài đang bị tắc nghẽn, hoặc bạn đang gặp khó khăn trong việc biểu đạt năng lượng của các lá bài ra ngoài. Đây là giai đoạn cần dừng lại suy nghĩ, chữa lành từ bên trong.`;
+  } else {
+    arcanaAnalysis += " Các lá bài chủ yếu ở trạng thái xuôi cho thấy dòng năng lượng đang trôi chảy thuận lợi, mọi cơ hội và thử thách đều hiển lộ rõ ràng giúp bạn dễ dàng đưa ra quyết định.";
+  }
+
+  // 3. Element/Suit Analysis
+  let elementAnalysis = "";
+  const elementsPresent = [];
+  if (cupsCount > 0) elementsPresent.push(`Nước (Cups: ${cupsCount} lá)`);
+  if (wandsCount > 0) elementsPresent.push(`Lửa (Wands: ${wandsCount} lá)`);
+  if (swordsCount > 0) elementsPresent.push(`Khí (Swords: ${swordsCount} lá)`);
+  if (pentaclesCount > 0) elementsPresent.push(`Đất (Pentacles: ${pentaclesCount} lá)`);
+  
+  elementAnalysis = `Trải bài chứa sự pha trộn giữa các nguyên tố: ${elementsPresent.join(", ")}. `;
+
+  // Element combination logic
+  if (cupsCount > 0 && wandsCount > 0) {
+    elementAnalysis += "Sự kết hợp giữa Nước và Lửa tạo nên sự giao thoa mạnh mẽ giữa trái tim (cảm xúc) và ý chí (động lực). Hãy cẩn thận tránh để cảm xúc bộc phát quá mức cản trở hành động thực tế. ";
+  }
+  if (swordsCount > 0 && pentaclesCount > 0) {
+    elementAnalysis += "Sự xuất hiện của cả Khí và Đất đòi hỏi sự cân bằng giữa lý thuyết (tư duy logic) và thực tiễn (kết quả vật chất). Bạn cần lập kế hoạch cụ thể và triển khai từng bước một cách thực tế. ";
+  }
+  if (swordsCount > 0 && cupsCount > 0) {
+    elementAnalysis += "Nguyên tố Khí và Nước cùng hiện diện chỉ ra sự xung đột giữa lý trí và tình cảm. Bạn có thể đang dùng đầu óc để phân tích một vấn đề thuộc về cảm xúc, hoặc ngược lại. Hãy tĩnh tâm để đầu óc bớt phán xét. ";
+  }
+  if (wandsCount > 0 && pentaclesCount > 0) {
+    elementAnalysis += "Sự kết hợp giữa Lửa và Đất rất lý tưởng cho sự sáng tạo và phát triển tài lộc. Lửa truyền cảm hứng hành động, trong khi Đất giúp xây dựng nền tảng vật chất vững bền. ";
+  }
+
+  // 4. Flow Analysis (Positional Flow)
+  let flowAnalysis = "";
+  if (spreadPresetId === "ppf" || spreadPresetId === "soa" || spreadPresetId === "mha" || spreadPresetId === "opt" || spreadPresetId === "hbp") {
+    flowAnalysis = `Dòng chảy trải bài 3 lá dịch chuyển từ vị trí 1 sang vị trí 2 và hội tụ tại vị trí 3. Lá ở giữa đại diện cho tiêu điểm cốt lõi hiện tại, trong khi lá cuối cùng chỉ ra kết quả hoặc giải pháp hành động tốt nhất.`;
+  } else if (spreadPresetId === "five-cross" || spreadPresetId === "five-decision" || spreadPresetId === "five-relationship") {
+    flowAnalysis = `Trải bài 5 lá phân bổ năng lượng đa chiều: hai vị trí đầu (vị trí 1 và 2) đại diện cho bối cảnh nền tảng, vị trí 3 (trung tâm) là nút thắt cần giải quyết, trong khi vị trí 4 và 5 dẫn lối hành động cùng kết quả tương lai.`;
+  } else {
+    flowAnalysis = "Trong trải bài tự chọn này, các lá bài tương tác theo kiểu liên kết chuỗi (narrative reading). Không có dòng chảy thời gian cố định, mà là sự phản chiếu lẫn nhau giữa các khía cạnh khác nhau trong câu hỏi của bạn.";
+  }
+
+  // 5. Consolidated Actionable Advice
+  let actionAdvice = "Hãy tập trung cải thiện năng lượng của các lá bài xuôi để tạo đòn bẩy thúc đẩy tình huống. ";
+  if (reversedCount > 0) {
+    actionAdvice += "Với các lá bài ngược, hãy dành thời gian tự hỏi bản thân xem khía cạnh nào bạn đang trốn tránh hoặc chưa sẵn sàng đối mặt. ";
+  }
+  
+  if (swordsCount > cupsCount) {
+    actionAdvice += "Ưu tiên tư duy logic, lập kế hoạch rõ ràng và cắt đứt các kết nối độc hại gây nhiễu loạn tinh thần.";
+  } else if (cupsCount > swordsCount) {
+    actionAdvice += "Hãy lắng nghe tiếng nói của trực giác, tôn trọng cảm xúc bản thân và cải thiện các mối quan hệ xã hội.";
+  } else if (wandsCount > 0) {
+    actionAdvice += "Hãy chủ động nắm bắt cơ hội và hành động quyết liệt. Sự chần chừ lúc này sẽ làm nguội lạnh bầu nhiệt huyết.";
+  } else if (pentaclesCount > 0) {
+    actionAdvice += "Hãy tập trung vào tích lũy, làm việc kiên trì và xây dựng các giá trị thực tiễn lâu dài.";
+  }
+
+  return {
+    overview,
+    arcanaAnalysis,
+    elementAnalysis,
+    flowAnalysis,
+    actionAdvice
+  };
 }
