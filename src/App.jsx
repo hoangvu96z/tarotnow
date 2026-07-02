@@ -270,35 +270,57 @@ export default function App() {
             </div>
           </div>
 
-          {(drawnCards.length > 0) && (
-            <button
-              onClick={handleResetApp}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <a 
+              href="https://vunph.id.vn/kinhdich/"
+              target="_blank"
+              rel="noopener noreferrer"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(229,193,88,0.3)',
-                borderRadius: 8,
-                color: 'rgba(255,255,255,0.9)',
-                padding: '8px 16px',
-                cursor: 'pointer',
+                color: 'rgba(255, 255, 255, 0.75)',
+                textDecoration: 'none',
                 fontSize: '0.875rem',
+                fontFamily: "'Inter', sans-serif",
+                transition: 'color 0.2s',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                fontFamily: "'Inter', sans-serif",
-                transition: 'background 0.2s, border-color 0.2s'
+                gap: '6px'
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(229, 193, 88, 0.1)';
-                e.currentTarget.style.borderColor = '#e5c158';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                e.currentTarget.style.borderColor = 'rgba(229,193,88,0.3)';
-              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#e5c158'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)'}
             >
-              🔄 Trải bài mới
-            </button>
-          )}
+              ☯️ Xem Kinh Dịch
+            </a>
+
+            {(drawnCards.length > 0) && (
+              <button
+                onClick={handleResetApp}
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(229,193,88,0.3)',
+                  borderRadius: 8,
+                  color: 'rgba(255,255,255,0.9)',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontFamily: "'Inter', sans-serif",
+                  transition: 'background 0.2s, border-color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(229, 193, 88, 0.1)';
+                  e.currentTarget.style.borderColor = '#e5c158';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                  e.currentTarget.style.borderColor = 'rgba(229,193,88,0.3)';
+                }}
+              >
+                🔄 Trải bài mới
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
