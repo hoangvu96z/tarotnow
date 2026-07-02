@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  drawTarotCards, 
-  SPREADS, 
-  CONTEXTS, 
-  getCardMeaning, 
-  analyzeSpreadPatterns, 
-  composeSpreadSummary 
+import {
+  drawTarotCards,
+  SPREADS,
+  CONTEXTS,
+  getCardMeaning,
+  analyzeSpreadPatterns,
+  composeSpreadSummary
 } from './utils/tarotLogic';
 import Card3D from './components/Card3D';
 import DeckPile from './components/DeckPile';
@@ -38,7 +38,7 @@ export default function App() {
   const [activeSpread, setActiveSpread] = useState('past-present-future');
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedModalCard, setSelectedModalCard] = useState(null);
-  
+
   // History list (persisted in localStorage for convenience)
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem('tarot_draw_history');
@@ -305,7 +305,7 @@ export default function App() {
       <main className="panels-container">
         {/* Left Side: Setup & Settings */}
         <section className="left-panel-stack" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          
+
           <div className="setup-panel glass-panel">
             {/* Question Textarea */}
             <div className="form-group">
@@ -326,7 +326,7 @@ export default function App() {
             <div className="settings-grid-3">
               <div className="settings-col">
                 <label className="form-label">Chọn Trải Bài (Spread)</label>
-                <select 
+                <select
                   className="custom-select"
                   value={activeSpread}
                   onChange={(e) => handleSpreadPresetChange(e.target.value)}
@@ -341,7 +341,7 @@ export default function App() {
               <div className="settings-col">
                 <label className="form-label">Số lá cần rút</label>
                 {activeSpread === 'custom' ? (
-                  <select 
+                  <select
                     className="custom-select"
                     value={drawCount}
                     onChange={(e) => setDrawCount(parseInt(e.target.value))}
@@ -359,8 +359,8 @@ export default function App() {
               </div>
 
               <div className="settings-col">
-                <label className="form-label">Góc nhìn giải nghĩa (Context)</label>
-                <select 
+                <label className="form-label">Góc nhìn giải nghĩa</label>
+                <select
                   className="custom-select"
                   value={interpretationContext}
                   onChange={(e) => setInterpretationContext(e.target.value)}
@@ -379,7 +379,7 @@ export default function App() {
                 <label className="form-label">Chế độ lá ngược</label>
                 <div className="toggle-wrapper">
                   <label className="toggle-switch">
-                    <input 
+                    <input
                       type="checkbox"
                       checked={reversedEnabled}
                       onChange={(e) => setReversedEnabled(e.target.checked)}
@@ -407,9 +407,9 @@ export default function App() {
                     value={reversedRate}
                     onChange={(e) => setReversedRate(parseFloat(e.target.value))}
                     className="custom-range-slider"
-                    style={{ 
-                      '--track-fill': `${reversedRate * 100}%`, 
-                      '--thumb-color': 'var(--gold-color)' 
+                    style={{
+                      '--track-fill': `${reversedRate * 100}%`,
+                      '--thumb-color': 'var(--gold-color)'
                     }}
                     disabled={isDrawing || isShuffling}
                   />
@@ -425,18 +425,18 @@ export default function App() {
 
             {/* Primary Action Button */}
             <div className="action-area">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="draw-trigger-btn"
                 onClick={handleDraw}
                 disabled={isDrawing || isShuffling || !question.trim()}
               >
                 {isDrawing ? 'Đang rút bài...' : 'RÚT BÀI TAROT'}
               </button>
-              
-              <button 
-                type="button" 
-                className="reset-weights-btn" 
+
+              <button
+                type="button"
+                className="reset-weights-btn"
                 style={{ borderRadius: '20px', padding: '6px 20px' }}
                 onClick={handleResetApp}
               >
@@ -464,9 +464,9 @@ export default function App() {
               ) : (
                 <div className="cards-grid">
                   {drawnCards.map((c, idx) => (
-                    <Card3D 
-                      key={c.id} 
-                      card={c} 
+                    <Card3D
+                      key={c.id}
+                      card={c}
                       index={idx}
                       revealDelay={idx * 200}
                       onCardClick={setSelectedModalCard}
@@ -483,7 +483,7 @@ export default function App() {
               <h2 className="results-title" style={{ fontSize: '20px', borderBottom: '1px solid rgba(229,193,88,0.2)', paddingBottom: '12px', marginBottom: '20px', textAlign: 'left' }}>
                 🔮 Luận giải cơ bản (Interpretation Overview)
               </h2>
-              
+
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
                 <span className="card-orientation-badge upright" style={{ background: 'rgba(229,193,88,0.12)', color: '#e5c158', border: '1px solid rgba(229,193,88,0.25)', fontSize: '12px' }}>
                   Góc nhìn: {CONTEXTS.find(c => c.id === interpretationContext)?.name}
@@ -510,7 +510,7 @@ export default function App() {
                   <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>🌟 Bài học Arcana</h5>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.arcanaAnalysis}</p>
                 </div>
-                
+
                 {/* 2. Element/Suit Balance */}
                 <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
                   <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>🧪 Tương tác Nguyên tố</h5>
@@ -538,9 +538,9 @@ export default function App() {
                   const meaning = getCardMeaning(c, interpretationContext, c.orientation);
                   return (
                     <div key={idx} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', borderBottom: idx < drawnCards.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', paddingBottom: '16px' }}>
-                      <img 
-                        src={c.image} 
-                        alt={c.name} 
+                      <img
+                        src={c.image}
+                        alt={c.name}
                         style={{ width: '48px', height: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(229,193,88,0.2)', flexShrink: 0, transform: c.orientation === 'reversed' ? 'rotate(180deg)' : 'none' }}
                       />
                       <div style={{ flexGrow: 1 }}>
@@ -564,7 +564,7 @@ export default function App() {
 
           {/* Export Prompt Panel */}
           {drawnCards.length > 0 && !isDrawing && (
-            <PromptExporter 
+            <PromptExporter
               question={currentDrawnQuestion}
               drawnCards={drawnCards}
               spreadName={SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh'}
@@ -579,10 +579,10 @@ export default function App() {
 
         {/* Right Side: Deck Stack & Weights & History */}
         <section className="right-panel-stack" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          
+
           {/* Deck pile */}
           <div className="glass-panel" style={{ textAlign: 'center' }}>
-            <DeckPile 
+            <DeckPile
               remainingCount={tarotCards.length - (isDrawing ? 0 : drawnCards.length)}
               isShuffling={isShuffling}
               onShuffle={handleShuffle}
@@ -590,15 +590,15 @@ export default function App() {
           </div>
 
           {/* Weight Configs */}
-          <WeightControls 
+          <WeightControls
             weights={weights}
             onChange={setWeights}
             onPresetSelect={setWeights}
           />
-          
-          <button 
-            type="button" 
-            className="preset-badge-btn" 
+
+          <button
+            type="button"
+            className="preset-badge-btn"
             style={{ alignSelf: 'stretch', borderRadius: '8px', padding: '10px' }}
             onClick={handleRandomizeWeights}
           >
@@ -610,8 +610,8 @@ export default function App() {
             <div className="card-header-flex" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '10px', marginBottom: '14px' }}>
               <h3 className="settings-title">Lịch sử phiên này</h3>
               {history.length > 0 && (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="reset-weights-btn"
                   onClick={handleClearHistory}
                 >
@@ -619,7 +619,7 @@ export default function App() {
                 </button>
               )}
             </div>
-            
+
             {history.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', margin: '20px 0' }}>Chưa có trải bài nào được ghi lại.</p>
             ) : (
@@ -633,8 +633,8 @@ export default function App() {
                     <p className="history-question">"{item.question}"</p>
                     <div className="history-cards-line">
                       {item.cards.map((c, idx) => (
-                        <span 
-                          key={idx} 
+                        <span
+                          key={idx}
                           className={`history-card-mini-badge ${c.orientation === 'reversed' ? 'reversed' : ''}`}
                         >
                           {c.name} {c.orientation === 'reversed' ? '↓' : '↑'}
@@ -655,21 +655,21 @@ export default function App() {
         <div className="card-modal-overlay" onClick={() => setSelectedModalCard(null)}>
           <div className="card-modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setSelectedModalCard(null)}>×</button>
-            
+
             <div className="modal-left-col">
               <div className="modal-card-wrapper">
-                <img 
-                  src={selectedModalCard.image} 
+                <img
+                  src={selectedModalCard.image}
                   alt={selectedModalCard.name}
                   className={`modal-card-image ${selectedModalCard.orientation === 'reversed' ? 'reversed' : ''}`}
                 />
               </div>
             </div>
-            
+
             <div className="modal-right-col">
               <span className="modal-type">{selectedModalCard.arcana} Arcana {selectedModalCard.suit ? `• ${selectedModalCard.suit}` : ''}</span>
               <h2 className="modal-title">{selectedModalCard.name}</h2>
-              
+
               <div className="modal-section">
                 <h4 className="modal-section-title">Trạng thái hiện tại</h4>
                 <span className={`card-orientation-badge ${selectedModalCard.orientation}`}>
@@ -680,13 +680,13 @@ export default function App() {
               <div className="modal-section">
                 <h4 className="modal-section-title">Từ khóa của lá bài</h4>
                 <div className="modal-keywords-flex">
-                  {selectedModalCard.orientation === 'reversed' 
+                  {selectedModalCard.orientation === 'reversed'
                     ? selectedModalCard.reversedKeywords.map((kw, i) => (
-                        <span key={i} className="modal-kw-badge">{kw}</span>
-                      ))
+                      <span key={i} className="modal-kw-badge">{kw}</span>
+                    ))
                     : selectedModalCard.uprightKeywords.map((kw, i) => (
-                        <span key={i} className="modal-kw-badge">{kw}</span>
-                      ))
+                      <span key={i} className="modal-kw-badge">{kw}</span>
+                    ))
                   }
                 </div>
               </div>
@@ -694,7 +694,7 @@ export default function App() {
               <div className="modal-section">
                 <h4 className="modal-section-title">Chi tiết bộ bài</h4>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Lá bài thứ {selectedModalCard.number} thuộc nhóm {selectedModalCard.arcana} Arcana. 
+                  Lá bài thứ {selectedModalCard.number} thuộc nhóm {selectedModalCard.arcana} Arcana.
                   Rider-Waite-Smith Tarot Deck chuẩn 78 lá.
                 </p>
               </div>
