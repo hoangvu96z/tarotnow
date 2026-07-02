@@ -23,7 +23,7 @@ export default function DeckPile({ remainingCount, isShuffling, onShuffle }) {
             }}
           >
             <img 
-              src="/assets/cards/card-back.jpg" 
+              src={import.meta.env.BASE_URL + 'assets/cards/card-back.jpg'} 
               alt="Tarot Deck Pile"
               className="deck-card-image"
             />

@@ -81,7 +81,7 @@ export default function Card3D({
         <div className={`card-face card-front ${isReversed ? 'reversed' : ''}`}>
           <div className="card-inner-border">
             <img 
-              src={image} 
+              src={import.meta.env.BASE_URL + image.replace(/^\//, '')} 
               alt={name} 
               loading="lazy" 
               className="card-image"
@@ -108,7 +108,7 @@ export default function Card3D({
         <div className="card-face card-back">
           <div className="card-inner-border">
             <img 
-              src="/assets/cards/card-back.jpg" 
+              src={import.meta.env.BASE_URL + 'assets/cards/card-back.jpg'} 
               alt="Tarot Card Back" 
               loading="lazy"
               className="card-image"

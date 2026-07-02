@@ -50,7 +50,7 @@ export default function App() {
 
   // 1. Fetch card metadata database on mount
   useEffect(() => {
-    fetch('/data/cards.json')
+    fetch(import.meta.env.BASE_URL + 'data/cards.json')
       .then(res => {
         if (!res.ok) throw new Error("Không thể tải file cards.json");
         return res.json();
@@ -539,7 +539,7 @@ export default function App() {
                   return (
                     <div key={idx} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', borderBottom: idx < drawnCards.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', paddingBottom: '16px' }}>
                       <img
-                        src={c.image}
+                        src={import.meta.env.BASE_URL + c.image.replace(/^\//, '')}
                         alt={c.name}
                         style={{ width: '48px', height: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(229,193,88,0.2)', flexShrink: 0, transform: c.orientation === 'reversed' ? 'rotate(180deg)' : 'none' }}
                       />
@@ -659,7 +659,7 @@ export default function App() {
             <div className="modal-left-col">
               <div className="modal-card-wrapper">
                 <img
-                  src={selectedModalCard.image}
+                  src={import.meta.env.BASE_URL + selectedModalCard.image.replace(/^\//, '')}
                   alt={selectedModalCard.name}
                   className={`modal-card-image ${selectedModalCard.orientation === 'reversed' ? 'reversed' : ''}`}
                 />
