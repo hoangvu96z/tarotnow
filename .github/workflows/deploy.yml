@@ -37,10 +37,9 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
           server-dir: ./tarot/
-          dangerous-clean-slate: true
+          dangerous-clean-slate: false
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
             **/Cards-jpg/**
-            **/assets/cards/**
