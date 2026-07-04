@@ -241,22 +241,32 @@ export default function App() {
     t('spread.pos.' + activeSpread + '.' + idx, pos)
   ) || [];
 
-  const summaryObj = composeSpreadSummary(drawnCards, activeSpread, interpretationContext, language);
+  const summaryObj = composeSpreadSummary(drawnCards, activeSpread, interpretationContext, language, question);
   const formattedSummaryText = summaryObj ? (
     language === 'en' ? `
-[SPREAD OVERVIEW]
-- General Summary: ${summaryObj.overview}
-- Arcana Lesson: ${summaryObj.arcanaAnalysis}
-- Elemental Interaction: ${summaryObj.elementAnalysis}
-- Flow Analysis: ${summaryObj.flowAnalysis}
-- Actionable Advice: ${summaryObj.actionAdvice}
+[WHAT THE SPREAD WANTS TO SAY]
+${summaryObj.intro}
+
+[STORY OF EACH CARD BY POSITION]
+${summaryObj.positions.map(p => `- ${p.position} (${p.card.name} - ${p.card.orientation === 'reversed' ? 'Reversed' : 'Upright'}):\n  -> ${p.humanMeaning}\n  -> ${p.impact}`).join('\n\n')}
+
+[CORE MESSAGE]
+${summaryObj.coreMessage}
+
+[PRACTICAL ADVICE]
+${summaryObj.advice}
 `.trim() : `
-[TỔNG QUAN TRẢI BÀI]
-- Tóm tắt chung: ${summaryObj.overview}
-- Bài học Arcana: ${summaryObj.arcanaAnalysis}
-- Tương tác Nguyên tố: ${summaryObj.elementAnalysis}
-- Dòng chảy liên kết: ${summaryObj.flowAnalysis}
-- Lời khuyên hành động: ${summaryObj.actionAdvice}
+[ĐIỀU TRẢI BÀI ĐANG MUỐN NÓI]
+${summaryObj.intro}
+
+[CÂU CHUYỆN CỦA TỪNG LÁ THEO VỊ TRÍ]
+${summaryObj.positions.map(p => `- ${p.position} (${p.card.name} - ${p.card.orientation === 'reversed' ? 'Ngược' : 'Xuôi'}):\n  -> ${p.humanMeaning}\n  -> ${p.impact}`).join('\n\n')}
+
+[THÔNG ĐIỆP CHÍNH]
+${summaryObj.coreMessage}
+
+[LỜI KHUYÊN THỰC TẾ]
+${summaryObj.advice}
 `.trim()
   ) : "";
 
@@ -624,7 +634,7 @@ export default function App() {
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
                 <span className="card-orientation-badge upright" style={{ background: 'rgba(229,193,88,0.12)', color: '#e5c158', border: '1px solid rgba(229,193,88,0.25)', fontSize: '12px' }}>
-                  {t('result.perspective_prefix', 'Góc nhìn')}: {t('context.' + interpretationContext, CONTEXTS.find(c => c.id === interpretationContext)?.name)}
+                  {t('result.perspective_prefix', 'Góc nhìn')}: {t('context.' + summaryObj.context, CONTEXTS.find(c => c.id === summaryObj.context)?.name)}
                 </span>
                 {analyzeSpreadPatterns(drawnCards, language)?.tone.map((tVal, idx) => (
                   <span key={idx} className="card-orientation-badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '12px' }}>
@@ -633,82 +643,70 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Overall Summary */}
+              {/* 1. Điều trải bài đang muốn nói */}
               <div className="summary-box" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(212,175,55,0.15)', padding: '18px', borderRadius: '8px', marginBottom: '24px' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "'Cinzel', serif", letterSpacing: '0.5px' }}>
-                  {t('result.summary_title', 'Tóm tắt chung')}
+                <h4 style={{ margin: '0 0 8px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "var(--font-heading)", letterSpacing: '0.5px' }}>
+                  {language === 'en' ? '🔮 What the spread wants to say' : '🔮 Điều trải bài đang muốn nói'}
                 </h4>
                 <p style={{ margin: 0, fontSize: '14px', color: '#dfdbf0', lineHeight: '1.6' }}>
-                  {summaryObj.overview}
+                  {summaryObj.intro}
                 </p>
               </div>
 
-              {/* Multi-dimensional analysis grid */}
-              <div className="analysis-dimensions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '32px' }}>
-                {/* 1. Arcana Lessons */}
-                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
-                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>
-                    🌟 {language === 'en' ? 'Arcana Lesson' : 'Bài học Arcana'}
-                  </h5>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.arcanaAnalysis}</p>
-                </div>
-
-                {/* 2. Element/Suit Balance */}
-                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
-                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>
-                    🧪 {language === 'en' ? 'Elemental Interaction' : 'Tương tác Nguyên tố'}
-                  </h5>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.elementAnalysis}</p>
-                </div>
-
-                {/* 3. Positional Flow */}
-                <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
-                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>
-                    🌊 {language === 'en' ? 'Positional Flow' : 'Dòng chảy Trải bài'}
-                  </h5>
-                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.flowAnalysis}</p>
-                </div>
-
-                {/* 4. Actionable Advice */}
-                <div style={{ background: 'rgba(229,193,88,0.04)', border: '1px solid rgba(229,193,88,0.15)', padding: '16px', borderRadius: '8px' }}>
-                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>
-                    ⚡ {language === 'en' ? 'Actionable Advice' : 'Lời khuyên Hành động'}
-                  </h5>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#f3e5ab', lineHeight: '1.5', fontWeight: '500' }}>{summaryObj.actionAdvice}</p>
-                </div>
-              </div>
-
-              {/* Card by Card Interpretation */}
-              <h4 style={{ margin: '0 0 16px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "'Cinzel', serif", letterSpacing: '0.5px' }}>
-                {t('result.analysis_by_position', 'Luận giải từng vị trí')}
+              {/* 2. Câu chuyện của từng lá theo vị trí */}
+              <h4 style={{ margin: '24px 0 16px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "var(--font-heading)", letterSpacing: '0.5px' }}>
+                {language === 'en' ? '🎴 Story of each card by position' : '🎴 Câu chuyện của từng lá theo vị trí'}
               </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {drawnCards.map((c, idx) => {
-                  const posName = spreadPositions[idx] || (language === 'en' ? `Card #${idx + 1}` : `Lá thứ ${idx + 1}`);
-                  const meaning = getCardMeaning(c, interpretationContext, c.orientation);
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '24px' }}>
+                {summaryObj.positions.map((p, idx) => {
+                  const isRev = p.card.orientation === 'reversed';
                   return (
-                    <div key={idx} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', borderBottom: idx < drawnCards.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', paddingBottom: '16px' }}>
+                    <div key={idx} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', borderBottom: idx < summaryObj.positions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', paddingBottom: '16px' }}>
                       <img
-                        src={import.meta.env.BASE_URL + c.image.replace(/^\//, '')}
-                        alt={c.name}
-                        style={{ width: '48px', height: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(229,193,88,0.2)', flexShrink: 0, transform: c.orientation === 'reversed' ? 'rotate(180deg)' : 'none' }}
+                        src={import.meta.env.BASE_URL + p.card.image.replace(/^\//, '')}
+                        alt={p.card.name}
+                        style={{ width: '48px', height: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid rgba(229,193,88,0.2)', flexShrink: 0, transform: isRev ? 'rotate(180deg)' : 'none' }}
                       />
                       <div style={{ flexGrow: 1 }}>
                         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                          <span style={{ fontWeight: '600', color: '#fff', fontSize: '14px' }}>{c.name}</span>
-                          <span style={{ fontSize: '12px', color: 'var(--gold-color)' }}>({posName})</span>
-                          <span className={`card-orientation-badge ${c.orientation}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
-                            {c.orientation === 'reversed' ? t('result.mini_reversed', 'Ngược') : t('result.mini_upright', 'Xuôi')}
+                          <span style={{ fontWeight: '600', color: '#fff', fontSize: '14px' }}>{p.card.name}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--gold-color)' }}>({p.position})</span>
+                          <span className={`card-orientation-badge ${p.card.orientation}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
+                            {isRev ? t('result.mini_reversed', 'Ngược') : t('result.mini_upright', 'Xuôi')}
                           </span>
                         </div>
-                        <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-                          {meaning}
+                        <p style={{ margin: '0 0 6px 0', fontSize: '13px', color: 'var(--text-primary)', lineHeight: '1.5' }}>
+                          {p.humanMeaning}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic', lineHeight: '1.4' }}>
+                          👉 {p.impact}
                         </p>
                       </div>
                     </div>
                   );
                 })}
               </div>
+
+              {/* 3. Thông điệp chính */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px', marginBottom: '16px' }}>
+                <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "var(--font-heading)", textTransform: 'uppercase' }}>
+                  🌟 {language === 'en' ? 'Core Message' : 'Thông điệp chính'}
+                </h5>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                  {summaryObj.coreMessage}
+                </p>
+              </div>
+
+              {/* 4. Lời khuyên thực tế */}
+              <div style={{ background: 'rgba(229,193,88,0.04)', border: '1px solid rgba(229,193,88,0.15)', padding: '16px', borderRadius: '8px' }}>
+                <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "var(--font-heading)", textTransform: 'uppercase' }}>
+                  ⚡ {language === 'en' ? 'Practical Advice' : 'Lời khuyên Thực tế'}
+                </h5>
+                <p style={{ margin: 0, fontSize: '13px', color: '#f3e5ab', lineHeight: '1.5', fontWeight: '500' }}>
+                  {summaryObj.advice}
+                </p>
+              </div>
+
             </div>
           )}
 
