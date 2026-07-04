@@ -11,10 +11,12 @@ import Card3D from './components/Card3D';
 import DeckPile from './components/DeckPile';
 import WeightControls from './components/WeightControls';
 import PromptExporter from './components/PromptExporter';
+import ManualPickMode from './components/ManualPickMode';
 import { useLanguage } from './context/LanguageContext';
 
 export default function App() {
   const [tarotCards, setTarotCards] = useState([]);
+  const [activeMode, setActiveMode] = useState('random'); // 'random' | 'manual'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -415,6 +417,31 @@ export default function App() {
         {/* Left Side: Setup & Settings */}
         <section className="left-panel-stack" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
 
+          {/* ── Mode Switcher ── */}
+          <div className="mode-switcher">
+            <button
+              className={`mode-switcher-btn${activeMode === 'random' ? ' active' : ''}`}
+              onClick={() => setActiveMode('random')}
+            >
+              🎴 {language === 'en' ? 'Random Draw' : 'Rút Ngẫu Nhiên'}
+            </button>
+            <button
+              className={`mode-switcher-btn${activeMode === 'manual' ? ' active' : ''}`}
+              onClick={() => setActiveMode('manual')}
+            >
+              🖐 {language === 'en' ? 'Manual Pick' : 'Chọn Tay'}
+            </button>
+          </div>
+
+          {/* ── Manual Pick Mode (parallel) ── */}
+          {activeMode === 'manual' && (
+            <ManualPickMode tarotCards={tarotCards} />
+          )}
+
+          {/* ── Random Draw Mode ── */}
+          {activeMode === 'random' && (
+          <div style={{ display: 'contents' }}>
+
           <div className="setup-panel glass-panel">
             {/* Question Textarea */}
             <div className="form-group">
@@ -696,6 +723,9 @@ export default function App() {
               interpretationSummary={formattedSummaryText}
               getCardMeaning={getCardMeaning}
             />
+          )}
+
+          </div>
           )}
 
         </section>
