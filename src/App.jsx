@@ -11,6 +11,7 @@ import Card3D from './components/Card3D';
 import DeckPile from './components/DeckPile';
 import WeightControls from './components/WeightControls';
 import PromptExporter from './components/PromptExporter';
+import { useLanguage } from './context/LanguageContext';
 
 export default function App() {
   const [tarotCards, setTarotCards] = useState([]);
@@ -48,11 +49,15 @@ export default function App() {
   // Validation messages
   const [validationError, setValidationError] = useState('');
 
-  // 1. Fetch card metadata database on mount
+  const { t, language, setLanguage } = useLanguage();
+
+  // 1. Fetch card metadata database on mount and language switch
   useEffect(() => {
-    fetch(import.meta.env.BASE_URL + 'data/cards.json')
+    const filename = language === 'en' ? 'cards_en.json' : 'cards.json';
+    setLoading(true);
+    fetch(import.meta.env.BASE_URL + 'data/' + filename)
       .then(res => {
-        if (!res.ok) throw new Error("Không thể tải file cards.json");
+        if (!res.ok) throw new Error("Could not load cards.json");
         return res.json();
       })
       .then(data => {
@@ -61,10 +66,43 @@ export default function App() {
       })
       .catch(err => {
         console.error(err);
-        setError("Lỗi nạp dữ liệu Tarot. Vui lòng kiểm tra lại đường dẫn assets.");
+        setError(language === 'en' 
+          ? "Error loading Tarot data. Please check assets path." 
+          : "Lỗi nạp dữ liệu Tarot. Vui lòng kiểm tra lại đường dẫn assets."
+        );
         setLoading(false);
       });
-  }, []);
+  }, [language]);
+
+  // 1b. Automatically translate drawn cards when card deck shifts language
+  useEffect(() => {
+    if (drawnCards.length > 0 && tarotCards.length > 0) {
+      setDrawnCards(prev => prev.map(oldCard => {
+        const newCard = tarotCards.find(c => c.id === oldCard.id);
+        if (newCard) {
+          return {
+            ...newCard,
+            orientation: oldCard.orientation,
+            drawPosition: oldCard.drawPosition
+          };
+        }
+        return oldCard;
+      }));
+    }
+  }, [tarotCards]);
+
+  // 1c. Automatically translate active modal card
+  useEffect(() => {
+    if (selectedModalCard && tarotCards.length > 0) {
+      const newCard = tarotCards.find(c => c.id === selectedModalCard.id);
+      if (newCard) {
+        setSelectedModalCard({
+          ...newCard,
+          orientation: selectedModalCard.orientation
+        });
+      }
+    }
+  }, [tarotCards]);
 
   // Persist history to localStorage
   useEffect(() => {
@@ -96,22 +134,26 @@ export default function App() {
 
     // Input validations
     if (!question.trim()) {
-      setValidationError('Vui lòng nhập câu hỏi của bạn trước khi rút bài!');
+      setValidationError(t('form.draw_error_empty', 'Vui lòng nhập câu hỏi của bạn trước khi rút bài!'));
       return;
     }
     if (question.trim().length < 5) {
-      setValidationError('Câu hỏi quá ngắn (tối thiểu 5 ký tự) để AI có thể luận giải ý nghĩa!');
+      setValidationError(t('form.draw_error_short', 'Câu hỏi quá ngắn (tối thiểu 5 ký tự) để AI có thể luận giải ý nghĩa!'));
       return;
     }
 
     const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
     if (totalWeight <= 0) {
-      setValidationError('Tổng trọng số các nhóm phải lớn hơn 0!');
+      setValidationError(t('form.draw_error_weight', 'Tổng trọng số các nhóm phải lớn hơn 0!'));
       return;
     }
 
     if (drawCount > tarotCards.length) {
-      setValidationError(`Số lá cần rút (${drawCount}) vượt quá số lá có sẵn trong bộ bài (${tarotCards.length})!`);
+      setValidationError(
+        t('form.draw_error_limit', 'Số lá cần rút ({drawCount}) vượt quá số lá có sẵn trong bộ bài ({totalCards})!')
+          .replace('{drawCount}', drawCount)
+          .replace('{totalCards}', tarotCards.length)
+      );
       return;
     }
 
@@ -137,12 +179,15 @@ export default function App() {
         setIsDrawing(false);
 
         // Add to history
+        const locale = language === 'en' ? 'en-US' : 'vi-VN';
         const newHistoryItem = {
           id: Date.now(),
-          timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date().toLocaleDateString('vi-VN'),
+          timestamp: new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date().toLocaleDateString(locale),
           question: question,
+          spreadId: activeSpread,
           spreadName: SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh',
           cards: results.map(c => ({
+            id: c.id,
             name: c.name,
             orientation: c.orientation
           }))
@@ -190,22 +235,35 @@ export default function App() {
   };
 
   const activeSpreadObj = SPREADS.find(s => s.id === activeSpread);
-  const spreadPositions = activeSpreadObj?.positions || [];
+  const spreadPositions = activeSpreadObj?.positions?.map((pos, idx) => 
+    t('spread.pos.' + activeSpread + '.' + idx, pos)
+  ) || [];
 
-  const summaryObj = composeSpreadSummary(drawnCards, activeSpread, interpretationContext);
-  const formattedSummaryText = summaryObj ? `
+  const summaryObj = composeSpreadSummary(drawnCards, activeSpread, interpretationContext, language);
+  const formattedSummaryText = summaryObj ? (
+    language === 'en' ? `
+[SPREAD OVERVIEW]
+- General Summary: ${summaryObj.overview}
+- Arcana Lesson: ${summaryObj.arcanaAnalysis}
+- Elemental Interaction: ${summaryObj.elementAnalysis}
+- Flow Analysis: ${summaryObj.flowAnalysis}
+- Actionable Advice: ${summaryObj.actionAdvice}
+`.trim() : `
 [TỔNG QUAN TRẢI BÀI]
 - Tóm tắt chung: ${summaryObj.overview}
 - Bài học Arcana: ${summaryObj.arcanaAnalysis}
 - Tương tác Nguyên tố: ${summaryObj.elementAnalysis}
 - Dòng chảy liên kết: ${summaryObj.flowAnalysis}
 - Lời khuyên hành động: ${summaryObj.actionAdvice}
-`.trim() : "";
+`.trim()
+  ) : "";
 
   if (loading) {
     return (
       <div className="app-loader-container" style={{ textAlign: 'center', marginTop: '100px' }}>
-        <h2 style={{ fontFamily: 'Cinzel', color: '#e5c158' }}>Đang nạp năng lượng vũ trụ...</h2>
+        <h2 style={{ fontFamily: 'Cinzel', color: '#e5c158' }}>
+          {language === 'en' ? 'Aligning celestial energies...' : 'Đang nạp năng lượng vũ trụ...'}
+        </h2>
         <div className="spinner"></div>
       </div>
     );
@@ -214,7 +272,9 @@ export default function App() {
   if (error) {
     return (
       <div className="app-error-container" style={{ textAlign: 'center', marginTop: '100px', padding: '20px' }}>
-        <h2 style={{ color: '#eb5e55' }}>Cảnh báo từ Vũ Trụ</h2>
+        <h2 style={{ color: '#eb5e55' }}>
+          {language === 'en' ? 'Cosmic Interruption' : 'Cảnh báo từ Vũ Trụ'}
+        </h2>
         <p>{error}</p>
       </div>
     );
@@ -265,16 +325,43 @@ export default function App() {
                 TarotNow
               </div>
               <div style={{ fontSize: '0.6875rem', color: 'rgba(229,193,88,0.7)', letterSpacing: '0.15em', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif" }}>
-                Rút Bài & Luận Giải AI
+                {t('app.subtitle', 'Trải Bài Tarot & Luận Giải AI')}
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(229,193,88,0.25)',
+                borderRadius: 8,
+                color: '#e5c158',
+                padding: '6px 12px',
+                cursor: 'pointer',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                transition: 'all 0.2s',
+                fontFamily: "'Inter', sans-serif",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'rgba(229,193,88,0.1)';
+                e.currentTarget.style.borderColor = '#e5c158';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                e.currentTarget.style.borderColor = 'rgba(229,193,88,0.25)';
+              }}
+            >
+              {language === 'vi' ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}
+            </button>
+
             <a 
-              href="https://vunph.id.vn/kinhdich/"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="/kinhdich/"
               style={{
                 color: 'rgba(255, 255, 255, 0.75)',
                 textDecoration: 'none',
@@ -288,7 +375,7 @@ export default function App() {
               onMouseEnter={(e) => e.currentTarget.style.color = '#e5c158'}
               onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)'}
             >
-              ☯️ Xem Kinh Dịch
+              {t('nav.iching_link', '☯️ Lập quẻ Dịch')}
             </a>
 
             {(drawnCards.length > 0) && (
@@ -317,7 +404,7 @@ export default function App() {
                   e.currentTarget.style.borderColor = 'rgba(229,193,88,0.3)';
                 }}
               >
-                🔄 Trải bài mới
+                {t('nav.new_cast', '🔄 Trải bài mới')}
               </button>
             )}
           </div>
@@ -332,12 +419,12 @@ export default function App() {
             {/* Question Textarea */}
             <div className="form-group">
               <label className="form-label" htmlFor="question-input">
-                Nhập câu hỏi của bạn *
+                {t('form.question_label', 'Nhập câu hỏi của bạn *')}
               </label>
               <textarea
                 id="question-input"
                 className="custom-textarea"
-                placeholder="Ví dụ: Công việc sắp tới trong 3 tháng tới của tôi sẽ có biến chuyển như thế nào?"
+                placeholder={t('form.question_placeholder', 'Ví dụ: Công việc sắp tới trong 3 tháng tới của tôi sẽ có biến chuyển như thế nào?')}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 disabled={isDrawing || isShuffling}
@@ -347,7 +434,7 @@ export default function App() {
             {/* Presets, Card Count and Interpretation Context */}
             <div className="settings-grid-3">
               <div className="settings-col">
-                <label className="form-label">Chọn Trải Bài (Spread)</label>
+                <label className="form-label">{t('form.spread_label', 'Chọn Trải Bài (Spread)')}</label>
                 <select
                   className="custom-select"
                   value={activeSpread}
@@ -355,13 +442,13 @@ export default function App() {
                   disabled={isDrawing || isShuffling}
                 >
                   {SPREADS.map(s => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>{t('spread.name.' + s.id, s.name)}</option>
                   ))}
                 </select>
               </div>
 
               <div className="settings-col">
-                <label className="form-label">Số lá cần rút</label>
+                <label className="form-label">{t('form.draw_count_label', 'Số lá cần rút')}</label>
                 {activeSpread === 'custom' ? (
                   <select
                     className="custom-select"
@@ -370,18 +457,18 @@ export default function App() {
                     disabled={isDrawing || isShuffling}
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                      <option key={n} value={n}>{n} Lá</option>
+                      <option key={n} value={n}>{n} {language === 'en' ? 'Cards' : 'Lá'}</option>
                     ))}
                   </select>
                 ) : (
                   <div className="custom-select" style={{ opacity: 0.7, background: 'rgba(255,255,255,0.05)', cursor: 'not-allowed' }}>
-                    {drawCount} Lá (Cố định)
+                    {drawCount} {language === 'en' ? 'Cards (Fixed)' : 'Lá (Cố định)'}
                   </div>
                 )}
               </div>
 
               <div className="settings-col">
-                <label className="form-label">Góc nhìn giải nghĩa</label>
+                <label className="form-label">{t('form.perspective_label', 'Góc nhìn giải nghĩa')}</label>
                 <select
                   className="custom-select"
                   value={interpretationContext}
@@ -389,7 +476,7 @@ export default function App() {
                   disabled={isDrawing || isShuffling}
                 >
                   {CONTEXTS.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                    <option key={c.id} value={c.id}>{t('context.' + c.id, c.name)}</option>
                   ))}
                 </select>
               </div>
@@ -398,7 +485,7 @@ export default function App() {
             {/* Reversed Options */}
             <div className="settings-grid" style={{ alignItems: 'center' }}>
               <div className="settings-col">
-                <label className="form-label">Chế độ lá ngược</label>
+                <label className="form-label">{t('form.reversed_mode', 'Chế độ lá ngược')}</label>
                 <div className="toggle-wrapper">
                   <label className="toggle-switch">
                     <input
@@ -410,7 +497,9 @@ export default function App() {
                     <span className="toggle-slider"></span>
                   </label>
                   <span className="toggle-label-text">
-                    {reversedEnabled ? 'Đang bật' : 'Đang tắt'}
+                    {reversedEnabled 
+                      ? (language === 'en' ? 'Enabled' : 'Đang bật') 
+                      : (language === 'en' ? 'Disabled' : 'Đang tắt')}
                   </span>
                 </div>
               </div>
@@ -418,7 +507,7 @@ export default function App() {
               {reversedEnabled && (
                 <div className="settings-col">
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <label className="form-label" style={{ margin: 0 }}>Tỷ lệ lá ngược</label>
+                    <label className="form-label" style={{ margin: 0 }}>{t('form.reversed_rate', 'Tỷ lệ lá ngược')}</label>
                     <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{Math.round(reversedRate * 100)}%</span>
                   </div>
                   <input
@@ -453,7 +542,7 @@ export default function App() {
                 onClick={handleDraw}
                 disabled={isDrawing || isShuffling || !question.trim()}
               >
-                {isDrawing ? 'Đang rút bài...' : 'RÚT BÀI TAROT'}
+                {isDrawing ? t('form.drawing_btn', 'Đang rút bài...') : t('form.draw_btn', 'RÚT BÀI TAROT')}
               </button>
 
               <button
@@ -462,7 +551,7 @@ export default function App() {
                 style={{ borderRadius: '20px', padding: '6px 20px' }}
                 onClick={handleResetApp}
               >
-                Đặt lại cài đặt
+                {t('form.reset_btn', 'Đặt lại cài đặt')}
               </button>
             </div>
 
@@ -472,15 +561,15 @@ export default function App() {
           {(drawnCards.length > 0 || isDrawing) && (
             <div className="draw-results-section glass-panel">
               <div className="results-header-container">
-                <h2 className="results-title">Kết Quả Rút Bài</h2>
+                <h2 className="results-title">{t('result.title', 'Kết Quả Rút Bài')}</h2>
                 {currentDrawnQuestion && (
-                  <p className="results-question-text">Hỏi: "{currentDrawnQuestion}"</p>
+                  <p className="results-question-text">{t('result.question_prefix', 'Hỏi')}: "{currentDrawnQuestion}"</p>
                 )}
               </div>
 
               {isDrawing ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
-                  <p style={{ fontFamily: 'Cinzel', color: 'var(--gold-color)' }}>Đang liên kết năng lượng...</p>
+                  <p style={{ fontFamily: 'Cinzel', color: 'var(--gold-color)' }}>{t('result.loading_energy', 'Đang liên kết năng lượng...')}</p>
                   <div className="spinner" style={{ margin: '20px auto 0' }}></div>
                 </div>
               ) : (
@@ -503,23 +592,25 @@ export default function App() {
           {drawnCards.length > 0 && !isDrawing && summaryObj && (
             <div className="interpretation-section glass-panel" style={{ marginTop: '32px' }}>
               <h2 className="results-title" style={{ fontSize: '20px', borderBottom: '1px solid rgba(229,193,88,0.2)', paddingBottom: '12px', marginBottom: '20px', textAlign: 'left' }}>
-                🔮 Luận giải cơ bản (Interpretation Overview)
+                {t('result.interpretation_title', '🔮 Luận giải cơ bản (Interpretation Overview)')}
               </h2>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
                 <span className="card-orientation-badge upright" style={{ background: 'rgba(229,193,88,0.12)', color: '#e5c158', border: '1px solid rgba(229,193,88,0.25)', fontSize: '12px' }}>
-                  Góc nhìn: {CONTEXTS.find(c => c.id === interpretationContext)?.name}
+                  {t('result.perspective_prefix', 'Góc nhìn')}: {t('context.' + interpretationContext, CONTEXTS.find(c => c.id === interpretationContext)?.name)}
                 </span>
-                {analyzeSpreadPatterns(drawnCards)?.tone.map((t, idx) => (
+                {analyzeSpreadPatterns(drawnCards, language)?.tone.map((tVal, idx) => (
                   <span key={idx} className="card-orientation-badge" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '12px' }}>
-                    {t}
+                    {tVal}
                   </span>
                 ))}
               </div>
 
               {/* Overall Summary */}
               <div className="summary-box" style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(212,175,55,0.15)', padding: '18px', borderRadius: '8px', marginBottom: '24px' }}>
-                <h4 style={{ margin: '0 0 8px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "'Cinzel', serif", letterSpacing: '0.5px' }}>Tóm tắt chung</h4>
+                <h4 style={{ margin: '0 0 8px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "'Cinzel', serif", letterSpacing: '0.5px' }}>
+                  {t('result.summary_title', 'Tóm tắt chung')}
+                </h4>
                 <p style={{ margin: 0, fontSize: '14px', color: '#dfdbf0', lineHeight: '1.6' }}>
                   {summaryObj.overview}
                 </p>
@@ -529,34 +620,44 @@ export default function App() {
               <div className="analysis-dimensions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '32px' }}>
                 {/* 1. Arcana Lessons */}
                 <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
-                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>🌟 Bài học Arcana</h5>
+                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>
+                    🌟 {language === 'en' ? 'Arcana Lesson' : 'Bài học Arcana'}
+                  </h5>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.arcanaAnalysis}</p>
                 </div>
 
                 {/* 2. Element/Suit Balance */}
                 <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
-                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>🧪 Tương tác Nguyên tố</h5>
+                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>
+                    🧪 {language === 'en' ? 'Elemental Interaction' : 'Tương tác Nguyên tố'}
+                  </h5>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.elementAnalysis}</p>
                 </div>
 
                 {/* 3. Positional Flow */}
                 <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '16px', borderRadius: '8px' }}>
-                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>🌊 Dòng chảy Trải bài</h5>
+                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>
+                    🌊 {language === 'en' ? 'Positional Flow' : 'Dòng chảy Trải bài'}
+                  </h5>
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>{summaryObj.flowAnalysis}</p>
                 </div>
 
                 {/* 4. Actionable Advice */}
                 <div style={{ background: 'rgba(229,193,88,0.04)', border: '1px solid rgba(229,193,88,0.15)', padding: '16px', borderRadius: '8px' }}>
-                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>⚡ Lời khuyên Hành động</h5>
+                  <h5 style={{ margin: '0 0 6px 0', color: '#e5c158', fontSize: '13px', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>
+                    ⚡ {language === 'en' ? 'Actionable Advice' : 'Lời khuyên Hành động'}
+                  </h5>
                   <p style={{ margin: 0, fontSize: '13px', color: '#f3e5ab', lineHeight: '1.5', fontWeight: '500' }}>{summaryObj.actionAdvice}</p>
                 </div>
               </div>
 
               {/* Card by Card Interpretation */}
-              <h4 style={{ margin: '0 0 16px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "'Cinzel', serif", letterSpacing: '0.5px' }}>Luận giải từng vị trí</h4>
+              <h4 style={{ margin: '0 0 16px 0', color: '#e5c158', fontSize: '14px', textTransform: 'uppercase', fontFamily: "'Cinzel', serif", letterSpacing: '0.5px' }}>
+                {t('result.analysis_by_position', 'Luận giải từng vị trí')}
+              </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {drawnCards.map((c, idx) => {
-                  const posName = spreadPositions[idx] || `Lá thứ ${idx + 1}`;
+                  const posName = spreadPositions[idx] || (language === 'en' ? `Card #${idx + 1}` : `Lá thứ ${idx + 1}`);
                   const meaning = getCardMeaning(c, interpretationContext, c.orientation);
                   return (
                     <div key={idx} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', borderBottom: idx < drawnCards.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none', paddingBottom: '16px' }}>
@@ -570,7 +671,7 @@ export default function App() {
                           <span style={{ fontWeight: '600', color: '#fff', fontSize: '14px' }}>{c.name}</span>
                           <span style={{ fontSize: '12px', color: 'var(--gold-color)' }}>({posName})</span>
                           <span className={`card-orientation-badge ${c.orientation}`} style={{ fontSize: '9px', padding: '1px 6px' }}>
-                            {c.orientation === 'reversed' ? 'Ngược' : 'Xuôi'}
+                            {c.orientation === 'reversed' ? t('result.mini_reversed', 'Ngược') : t('result.mini_upright', 'Xuôi')}
                           </span>
                         </div>
                         <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
@@ -589,9 +690,9 @@ export default function App() {
             <PromptExporter
               question={currentDrawnQuestion}
               drawnCards={drawnCards}
-              spreadName={SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh'}
+              spreadName={t('spread.name.' + activeSpread, SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh')}
               spreadPositions={spreadPositions}
-              interpretationContext={CONTEXTS.find(c => c.id === interpretationContext)?.name}
+              interpretationContext={t('context.' + interpretationContext, CONTEXTS.find(c => c.id === interpretationContext)?.name)}
               interpretationSummary={formattedSummaryText}
               getCardMeaning={getCardMeaning}
             />
@@ -624,47 +725,58 @@ export default function App() {
             style={{ alignSelf: 'stretch', borderRadius: '8px', padding: '10px' }}
             onClick={handleRandomizeWeights}
           >
-            🎲 Trộn Trọng Số Ngẫu Nhiên
+            {t('weights.random_btn', '🎲 Trộn Trọng Số Ngẫu Nhiên')}
           </button>
 
           {/* Session History */}
           <div className="glass-panel history-panel">
             <div className="card-header-flex" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '10px', marginBottom: '14px' }}>
-              <h3 className="settings-title">Lịch sử phiên này</h3>
+              <h3 className="settings-title">{t('history.title', 'Lịch sử phiên này')}</h3>
               {history.length > 0 && (
                 <button
                   type="button"
                   className="reset-weights-btn"
                   onClick={handleClearHistory}
                 >
-                  Xóa lịch sử
+                  {t('history.clear_btn', 'Xóa lịch sử')}
                 </button>
               )}
             </div>
 
             {history.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', margin: '20px 0' }}>Chưa có trải bài nào được ghi lại.</p>
+              <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', margin: '20px 0' }}>
+                {t('history.empty', 'Chưa có trải bài nào được ghi lại.')}
+              </p>
             ) : (
               <div className="history-list">
-                {history.map((item) => (
-                  <div key={item.id} className="history-item">
-                    <div className="history-meta">
-                      <span>{item.spreadName}</span>
-                      <span>{item.timestamp}</span>
+                {history.map((item) => {
+                  const histSpreadName = item.spreadId 
+                    ? t('spread.name.' + item.spreadId, item.spreadName) 
+                    : (item.spreadName === 'Tùy chỉnh' || item.spreadName === 'Custom' ? t('history.custom', 'Tùy chỉnh') : item.spreadName);
+                  return (
+                    <div key={item.id} className="history-item">
+                      <div className="history-meta">
+                        <span>{histSpreadName}</span>
+                        <span>{item.timestamp}</span>
+                      </div>
+                      <p className="history-question">"{item.question}"</p>
+                      <div className="history-cards-line">
+                        {item.cards.map((cHist, idx) => {
+                          const card = tarotCards.find(tc => tc.id === cHist.id);
+                          const cardNameTrans = card ? card.name : cHist.name;
+                          return (
+                            <span
+                              key={idx}
+                              className={`history-card-mini-badge ${cHist.orientation === 'reversed' ? 'reversed' : ''}`}
+                            >
+                              {cardNameTrans} {cHist.orientation === 'reversed' ? '↓' : '↑'}
+                            </span>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <p className="history-question">"{item.question}"</p>
-                    <div className="history-cards-line">
-                      {item.cards.map((c, idx) => (
-                        <span
-                          key={idx}
-                          className={`history-card-mini-badge ${c.orientation === 'reversed' ? 'reversed' : ''}`}
-                        >
-                          {c.name} {c.orientation === 'reversed' ? '↓' : '↑'}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -693,14 +805,16 @@ export default function App() {
               <h2 className="modal-title">{selectedModalCard.name}</h2>
 
               <div className="modal-section">
-                <h4 className="modal-section-title">Trạng thái hiện tại</h4>
+                <h4 className="modal-section-title">{t('modal.status_label', 'Trạng thái hiện tại')}</h4>
                 <span className={`card-orientation-badge ${selectedModalCard.orientation}`}>
-                  {selectedModalCard.orientation === 'reversed' ? 'Lá Ngược (Reversed)' : 'Lá Xuôi (Upright)'}
+                  {selectedModalCard.orientation === 'reversed' 
+                    ? t('modal.orientation_reversed', 'Lá Ngược (Reversed)') 
+                    : t('modal.orientation_upright', 'Lá Xuôi (Upright)')}
                 </span>
               </div>
 
               <div className="modal-section">
-                <h4 className="modal-section-title">Từ khóa của lá bài</h4>
+                <h4 className="modal-section-title">{t('modal.keywords_label', 'Từ khóa của lá bài')}</h4>
                 <div className="modal-keywords-flex">
                   {selectedModalCard.orientation === 'reversed'
                     ? selectedModalCard.reversedKeywords.map((kw, i) => (
@@ -714,10 +828,11 @@ export default function App() {
               </div>
 
               <div className="modal-section">
-                <h4 className="modal-section-title">Chi tiết bộ bài</h4>
+                <h4 className="modal-section-title">{t('modal.details_title', 'Chi tiết bộ bài')}</h4>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Lá bài thứ {selectedModalCard.number} thuộc nhóm {selectedModalCard.arcana} Arcana.
-                  Rider-Waite-Smith Tarot Deck chuẩn 78 lá.
+                  {t('modal.details_desc', 'Lá bài thứ {number} thuộc nhóm {arcana} Arcana. Rider-Waite-Smith Tarot Deck chuẩn 78 lá.')
+                    .replace('{number}', selectedModalCard.number)
+                    .replace('{arcana}', selectedModalCard.arcana)}
                 </p>
               </div>
             </div>
@@ -727,7 +842,7 @@ export default function App() {
 
       <footer className="app-footer">
         <p>
-          Tarot & AI Oracle App. Made with ❤️. Sử dụng bộ ảnh Rider-Waite-Smith Public Domain.
+          {t('footer.text', 'Tarot & AI Oracle App. Made with ❤️. Sử dụng bộ ảnh Rider-Waite-Smith Public Domain.')}
         </p>
       </footer>
     </>

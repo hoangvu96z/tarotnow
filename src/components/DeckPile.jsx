@@ -1,10 +1,12 @@
 import React from 'react';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 /**
  * DeckPile Component
  * Renders a visual stack of cards with 3D layers to represent the physical Tarot deck.
  */
 export default function DeckPile({ remainingCount, isShuffling, onShuffle }) {
+  const { t } = useLanguage();
   // We render a few visual layers to create a 3D stack height
   const maxVisualLayers = 6;
   const layersCount = Math.min(maxVisualLayers, Math.ceil(remainingCount / 10));
@@ -40,7 +42,7 @@ export default function DeckPile({ remainingCount, isShuffling, onShuffle }) {
 
         <div className="deck-overlay-info">
           <span className="deck-count">{remainingCount}</span>
-          <span className="deck-label">Lá bài còn lại</span>
+          <span className="deck-label">{t('result.deck_remaining', 'Lá bài còn lại')}</span>
         </div>
       </div>
       
@@ -50,7 +52,7 @@ export default function DeckPile({ remainingCount, isShuffling, onShuffle }) {
         onClick={onShuffle}
         disabled={isShuffling || remainingCount <= 0}
       >
-        {isShuffling ? 'Đang Xáo Bài...' : 'Xáo Bài (Shuffle)'}
+        {isShuffling ? t('result.shuffling', 'Đang trộn...') : t('result.shuffle_btn', '🎴 Trộn Bài')}
       </button>
     </div>
   );

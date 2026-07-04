@@ -1,41 +1,50 @@
 import React from 'react';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 /**
  * WeightControls Component
  * Manages slider and numerical inputs for category weights with presets.
  */
 export default function WeightControls({ weights, onChange, onPresetSelect }) {
+  const { t } = useLanguage();
+
   const categories = [
-    { key: 'major', label: 'Major Arcana (Ẩn Chính)', color: '#d4af37' },
-    { key: 'cups', label: 'Cups (Cốc - Cảm xúc)', color: '#4a90e2' },
-    { key: 'pentacles', label: 'Pentacles (Tiền - Vật chất)', color: '#2ecc71' },
-    { key: 'swords', label: 'Swords (Kiếm - Trí tuệ)', color: '#9b59b6' },
-    { key: 'wands', label: 'Wands (Gậy - Hành động)', color: '#e67e22' }
+    { key: 'major', label: t('category.major', 'Major Arcana (Ẩn Chính)'), color: '#d4af37' },
+    { key: 'cups', label: t('category.cups', 'Cups (Cốc - Cảm xúc)'), color: '#4a90e2' },
+    { key: 'pentacles', label: t('category.pentacles', 'Pentacles (Tiền - Vật chất)'), color: '#2ecc71' },
+    { key: 'swords', label: t('category.swords', 'Swords (Kiếm - Trí tuệ)'), color: '#9b59b6' },
+    { key: 'wands', label: t('category.wands', 'Wands (Gậy - Hành động)'), color: '#e67e22' }
   ];
 
   const presets = [
     { 
-      name: 'Mặc định (Đều)', 
+      id: 'default',
+      name: t('preset.default', 'Mặc định (Đều)'), 
       values: { major: 20, cups: 20, pentacles: 20, swords: 20, wands: 20 } 
     },
     { 
-      name: 'Chỉ Ẩn Chính (Major)', 
+      id: 'major_only',
+      name: t('preset.major_only', 'Chỉ Ẩn Chính (Major)'), 
       values: { major: 100, cups: 0, pentacles: 0, swords: 0, wands: 0 } 
     },
     { 
-      name: 'Chỉ Ẩn Phụ (Minor)', 
+      id: 'minor_only',
+      name: t('preset.minor_only', 'Chỉ Ẩn Phụ (Minor)'), 
       values: { major: 0, cups: 25, pentacles: 25, swords: 25, wands: 25 } 
     },
     { 
-      name: 'Thiên về Ẩn Chính', 
+      id: 'major_focus',
+      name: t('preset.major_focus', 'Thiên về Ẩn Chính'), 
       values: { major: 50, cups: 12.5, pentacles: 12.5, swords: 12.5, wands: 12.5 } 
     },
     { 
-      name: 'Thiên về Cảm xúc (Cups)', 
+      id: 'cups_focus',
+      name: t('preset.cups_focus', 'Thiên về Cảm xúc (Cups)'), 
       values: { major: 15, cups: 55, pentacles: 10, swords: 10, wands: 10 } 
     },
     { 
-      name: 'Thiên về Vật chất (Pentacles)', 
+      id: 'pentacles_focus',
+      name: t('preset.pentacles_focus', 'Thiên về Vật chất (Pentacles)'), 
       values: { major: 15, cups: 10, pentacles: 55, swords: 10, wands: 10 } 
     }
   ];
@@ -61,16 +70,16 @@ export default function WeightControls({ weights, onChange, onPresetSelect }) {
   return (
     <div className="weight-settings-card">
       <div className="card-header-flex">
-        <h3 className="settings-title">Cài đặt trọng số nhóm bài</h3>
+        <h3 className="settings-title">{t('weights.title', 'Cài đặt trọng số nhóm bài')}</h3>
         <button 
           type="button" 
           className="reset-weights-btn"
           onClick={handleResetWeights}
         >
-          Đặt lại đều
+          {t('weights.reset_btn', 'Đặt lại đều')}
         </button>
       </div>
-      <p className="settings-subtitle">Điều chỉnh xác suất rút bài cho từng Arcana/Suit</p>
+      <p className="settings-subtitle">{t('weights.subtitle', 'Điều chỉnh xác suất rút bài cho từng Arcana/Suit')}</p>
 
       {/* Preset Badges */}
       <div className="presets-container">
@@ -120,7 +129,7 @@ export default function WeightControls({ weights, onChange, onPresetSelect }) {
 
       {total === 0 && (
         <div className="error-alert">
-          Cảnh báo: Tổng trọng số bằng 0! Hãy điều chỉnh ít nhất một nhóm để tiếp tục rút bài.
+          {t('weights.warning_zero', 'Cảnh báo: Tổng trọng số bằng 0! Hãy điều chỉnh ít nhất một nhóm để tiếp tục rút bài.')}
         </div>
       )}
     </div>
