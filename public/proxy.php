@@ -68,6 +68,9 @@ curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 
+curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+curl_setopt($ch, CURLOPT_TIMEOUT, 60);
+
 // Stream response support
 curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($curl, $data) {
     echo $data;
@@ -78,5 +81,10 @@ curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($curl, $data) {
     return strlen($data);
 });
 
-curl_exec($ch);
+$res = curl_exec($ch);
+if ($res === false) {
+    $err = curl_error($ch);
+    header("HTTP/1.1 502 Bad Gateway");
+    echo "Proxy Connection Error to VPS: " . $err;
+}
 curl_close($ch);
