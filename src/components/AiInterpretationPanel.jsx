@@ -156,7 +156,9 @@ Always respond in Vietnamese (unless English is explicitly requested, but defaul
 
           let callEndpoint = settings.endpoint.replace(/\/$/, '');
           if (callEndpoint.startsWith('http://43.128.116.69:20128') && 
-              (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+              (window.location.protocol === 'https:' || 
+               window.location.hostname === 'localhost' || 
+               window.location.hostname === '127.0.0.1')) {
             callEndpoint = callEndpoint.replace('http://43.128.116.69:20128', '/api-vps');
           }
 

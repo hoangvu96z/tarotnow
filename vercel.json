@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api-vps/:path*",
+      "destination": "http://43.128.116.69:20128/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
+    }
+  ]
+}
