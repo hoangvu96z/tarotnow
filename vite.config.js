@@ -5,4 +5,13 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/tarot/',
+  server: {
+    proxy: {
+      '/api-vps': {
+        target: 'http://43.128.116.69:20128',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api-vps/, '')
+      }
+    }
+  }
 })

@@ -12,6 +12,7 @@ import DeckPile from './components/DeckPile';
 import WeightControls from './components/WeightControls';
 import PromptExporter from './components/PromptExporter';
 import ManualPickMode from './components/ManualPickMode';
+import AiInterpretationPanel from './components/AiInterpretationPanel';
 import { useLanguage } from './context/LanguageContext';
 
 export default function App() {
@@ -712,15 +713,26 @@ ${summaryObj.advice}
 
           {/* Export Prompt Panel */}
           {drawnCards.length > 0 && !isDrawing && (
-            <PromptExporter
-              question={currentDrawnQuestion}
-              drawnCards={drawnCards}
-              spreadName={t('spread.name.' + activeSpread, SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh')}
-              spreadPositions={spreadPositions}
-              interpretationContext={t('context.' + interpretationContext, CONTEXTS.find(c => c.id === interpretationContext)?.name)}
-              interpretationSummary={formattedSummaryText}
-              getCardMeaning={getCardMeaning}
-            />
+            <>
+              <PromptExporter
+                question={currentDrawnQuestion}
+                drawnCards={drawnCards}
+                spreadName={t('spread.name.' + activeSpread, SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh')}
+                spreadPositions={spreadPositions}
+                interpretationContext={t('context.' + interpretationContext, CONTEXTS.find(c => c.id === interpretationContext)?.name)}
+                interpretationSummary={formattedSummaryText}
+                getCardMeaning={getCardMeaning}
+              />
+              <AiInterpretationPanel
+                question={currentDrawnQuestion}
+                drawnCards={drawnCards}
+                spreadName={t('spread.name.' + activeSpread, SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh')}
+                spreadPositions={spreadPositions}
+                interpretationContext={t('context.' + interpretationContext, CONTEXTS.find(c => c.id === interpretationContext)?.name)}
+                interpretationSummary={formattedSummaryText}
+                getCardMeaning={getCardMeaning}
+              />
+            </>
           )}
 
           </div>

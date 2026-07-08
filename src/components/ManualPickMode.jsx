@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { getCardMeaning } from '../utils/tarotLogic';
 import { useLanguage } from '../context/LanguageContext';
+import AiInterpretationPanel from './AiInterpretationPanel';
 
 const CONTEXTS_MANUAL = [
   { id: 'general', labelVi: '🌟 Tổng quát', labelEn: '🌟 General' },
@@ -432,9 +433,18 @@ export default function ManualPickMode({ tarotCards }) {
                     : (language === 'en' ? '📋 Copy List' : '📋 Sao chép danh sách')}
                 </button>
               </div>
-              <pre className="manual-copy-text" style={{ opacity: 0.75 }}>{simpleCardList}</pre>
             </div>
           </div>
+
+          <AiInterpretationPanel
+            question={question}
+            drawnCards={drawnCards}
+            spreadName={language === 'en' ? 'Manual Selection' : 'Tự Chọn Lá Bài'}
+            spreadPositions={drawnCards.map((_, i) => language === 'en' ? `Card ${i + 1}` : `Lá thứ ${i + 1}`)}
+            interpretationContext={activeCtx}
+            interpretationSummary=""
+            getCardMeaning={getCardMeaning}
+          />
 
           <div style={{ textAlign: 'center', marginTop: 24 }}>
             <button className="reset-weights-btn" style={{ padding: '10px 28px', borderRadius: 20 }} onClick={handleReset}>
