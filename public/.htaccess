@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Proxy: /api-vps/* → proxy.php
+  RewriteCond %{REQUEST_URI} /api-vps/(.*)$
+  RewriteRule ^(.*)$ proxy.php [QSA,L]
+
+  # SPA fallback routing
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteRule . index.html [L]
+</IfModule>

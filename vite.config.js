@@ -7,10 +7,10 @@ export default defineConfig({
   base: '/tarot/',
   server: {
     proxy: {
-      '/api-vps': {
-        target: 'http://43.128.116.69:20128',
+      '/tarot/api-vps': {
+        target: 'http://43.128.116.69',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api-vps/, '')
+        rewrite: (path) => path.replace(/^\/tarot\/api-vps/, '')
       }
     }
   }
