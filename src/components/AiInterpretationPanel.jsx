@@ -156,18 +156,8 @@ Always respond in Vietnamese (unless English is explicitly requested, but defaul
 
           let callEndpoint = settings.endpoint.replace(/\/$/, '');
           if (callEndpoint.startsWith('http://43.128.116.69:20128') && 
-              (window.location.protocol === 'https:' || 
-               window.location.hostname === 'localhost' || 
-               window.location.hostname === '127.0.0.1')) {
-            const path = window.location.pathname;
-            let base = '/';
-            if (path.includes('/kinhdich')) {
-              base = '/kinhdich/';
-            } else if (path.includes('/tarot')) {
-              base = '/tarot/';
-            }
-            const suffix = callEndpoint.replace('http://43.128.116.69:20128', '');
-            callEndpoint = base + 'api-vps' + suffix;
+              (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            callEndpoint = callEndpoint.replace('http://43.128.116.69:20128', '/api-vps');
           }
 
           const response = await fetch(`${callEndpoint}/chat/completions`, {
