@@ -13,6 +13,7 @@ import WeightControls from './components/WeightControls';
 import PromptExporter from './components/PromptExporter';
 import ManualPickMode from './components/ManualPickMode';
 import AiInterpretationPanel from './components/AiInterpretationPanel';
+import AuthUserBadge from './components/AuthUserBadge.jsx';
 import { useLanguage } from './context/LanguageContext';
 
 export default function App() {
@@ -390,6 +391,8 @@ ${summaryObj.advice}
             >
               {t('nav.iching_link', '☯️ Lập quẻ Dịch')}
             </a>
+
+            <AuthUserBadge />
 
             {(drawnCards.length > 0) && (
               <button
