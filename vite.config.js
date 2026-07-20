@@ -13,12 +13,7 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/tarot\/api-vps/, '')
       },
-      // SSO proxy — forwards /sso/* to vInfiSSO server in local dev
-      '/sso': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false,
-      }
+      // SSO: VITE_SSO_URL=https://sso.vunph.click (see .env)
     }
   }
 })
