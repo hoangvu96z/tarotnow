@@ -12,12 +12,43 @@ export function AuthProvider({ children }) {
 
   const fetchUser = useCallback(async () => {
     try {
+      // 1. Tách sso_token từ URL query string nếu vừa redirect từ SSO về
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenFromUrl = urlParams.get('sso_token');
+
+      if (tokenFromUrl) {
+        localStorage.setItem('sso_token', tokenFromUrl);
+        // Xóa sso_token khỏi thanh địa chỉ URL mà không reload trang
+        urlParams.delete('sso_token');
+        const newSearch = urlParams.toString();
+        const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '') + window.location.hash;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+
+      // 2. Đọc token từ localStorage
+      const storedToken = localStorage.getItem('sso_token');
+      const headers = {};
+      if (storedToken) {
+        headers['Authorization'] = `Bearer ${storedToken}`;
+      }
+
       const res = await fetch(`${SSO_BASE}/sso/me`, {
+        headers,
         credentials: 'include',
       });
+
       if (!res.ok) throw new Error('Not authenticated');
       const data = await res.json();
-      setUser(data.user ?? null);
+
+      if (data.user) {
+        setUser(data.user);
+        if (data.token) {
+          localStorage.setItem('sso_token', data.token);
+        }
+      } else {
+        localStorage.removeItem('sso_token');
+        setUser(null);
+      }
     } catch {
       setUser(null);
     } finally {
@@ -28,8 +59,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     fetchUser();
 
+    // Lắng nghe sự thay đổi trạng thái SSO từ các tab khác
     const handleStorage = (e) => {
-      if (e.key === 'vInfiSSO-state') fetchUser();
+      if (e.key === 'vInfiSSO-state') {
+        fetchUser();
+      }
     };
 
     window.addEventListener('storage', handleStorage);
@@ -42,17 +76,25 @@ export function AuthProvider({ children }) {
   }, [fetchUser]);
 
   const login = () => {
-    const returnUrl = encodeURIComponent(window.location.href);
+    // Điều hướng sang trang đăng nhập SSO kèm theo URL trả về (redirect)
+    const url = new URL(window.location.href);
+    url.searchParams.delete('sso_token');
+    const returnUrl = encodeURIComponent(url.toString());
     window.location.href = `${SSO_BASE}/ui/sso?redirect=${returnUrl}`;
   };
 
   const logout = async () => {
     try {
+      const storedToken = localStorage.getItem('sso_token');
+      const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+
       await fetch(`${SSO_BASE}/sso/logout`, {
         method: 'POST',
+        headers,
         credentials: 'include',
       });
-      localStorage.setItem('vInfiSSO-state', JSON.stringify({ type: 'logout' }));
+      localStorage.removeItem('sso_token');
+      localStorage.setItem('vInfiSSO-state', JSON.stringify({ type: 'logout', t: Date.now() }));
       setUser(null);
     } catch (e) {
       console.error('Logout failed', e);
