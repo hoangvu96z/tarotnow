@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from './context/AuthContext.jsx';
+import { useReadingsApi } from './hooks/useReadingsApi.js';
 import {
   drawTarotCards,
   SPREADS,
@@ -44,11 +46,21 @@ export default function App() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedModalCard, setSelectedModalCard] = useState(null);
 
-  // History list (persisted in localStorage for convenience)
-  const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem('tarot_draw_history');
-    return saved ? JSON.parse(saved) : [];
-  });
+  // ─── Auth + Readings API ──────────────────────────────────────────────────
+  const { isAuthenticated } = useAuth();
+  const {
+    history,
+    setHistory,
+    historyLoaded,
+    loadHistory,
+    saveReading,
+    clearHistory,
+  } = useReadingsApi(isAuthenticated);
+
+  // Tải lịch sử khi mount hoặc khi auth state thay đổi
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory, isAuthenticated]);
 
   // Validation messages
   const [validationError, setValidationError] = useState('');
@@ -108,10 +120,7 @@ export default function App() {
     }
   }, [tarotCards]);
 
-  // Persist history to localStorage
-  useEffect(() => {
-    localStorage.setItem('tarot_draw_history', JSON.stringify(history));
-  }, [history]);
+  // History persistence now handled by useReadingsApi hook (API or localStorage)
 
   // Adjust preset configurations
   const handleSpreadPresetChange = (presetId) => {
@@ -182,21 +191,24 @@ export default function App() {
         setDrawnCards(results);
         setIsDrawing(false);
 
-        // Add to history
+        // Add to history via API (or localStorage if not logged in)
         const locale = language === 'en' ? 'en-US' : 'vi-VN';
+        const spreadName = SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh';
         const newHistoryItem = {
-          id: Date.now(),
+          id: Date.now().toString(),
           timestamp: new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) + ' - ' + new Date().toLocaleDateString(locale),
           question: question,
           spreadId: activeSpread,
-          spreadName: SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh',
+          spread: activeSpread,
+          spreadName,
+          title: `${spreadName}${question ? ' - ' + question : ''}`,
           cards: results.map(c => ({
             id: c.id,
             name: c.name,
             orientation: c.orientation
           }))
         };
-        setHistory(prev => [newHistoryItem, ...prev].slice(0, 10)); // Keep last 10 entries
+        saveReading(newHistoryItem);
       }, 500);
 
     } catch (err) {
