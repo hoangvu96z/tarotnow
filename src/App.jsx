@@ -335,8 +335,7 @@ ${summaryObj.advice}
         subtitle={t('app.subtitle', 'Trải Bài Tarot & Luận Giải AI')}
         navItems={[
           {
-            icon: '☯️',
-            label: t('nav.iching_link', 'Lập quẻ Dịch'),
+            label: t('nav.iching_link', '☯️ Lập quẻ Dịch'),
             href: '/kinhdich/',
           },
         ]}

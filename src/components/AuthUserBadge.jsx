@@ -66,23 +66,23 @@ export default function AuthUserBadge() {
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          background: 'rgba(255,255,255,0.05)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.18)',
           borderRadius: 24,
           padding: '4px 10px 4px 4px',
           cursor: 'pointer',
-          color: 'inherit',
+          color: '#ffffff',
           fontFamily: 'inherit',
           transition: 'background 0.2s',
         }}
-        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
       >
         <div style={{
           width: 28, height: 28, borderRadius: '50%',
           background: 'linear-gradient(135deg, #7c5cfc, #a78bfa)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '0.75rem', fontWeight: 700, color: 'white',
+          fontSize: '0.75rem', fontWeight: 700, color: '#ffffff',
           overflow: 'hidden', flexShrink: 0,
         }}>
           {user.avatarUrl
@@ -91,11 +91,11 @@ export default function AuthUserBadge() {
           }
         </div>
 
-        <span style={{ fontSize: '0.8rem', fontWeight: 500, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ color: '#ffffff', fontSize: '0.8rem', fontWeight: 600, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {user.displayName || user.email?.split('@')[0]}
         </span>
 
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.5, transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}>
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.7, color: '#ffffff', transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'none' }}>
           <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
@@ -110,7 +110,7 @@ export default function AuthUserBadge() {
           zIndex: 1000,
         }}>
           <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 6 }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user.displayName || 'Người dùng'}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#888899', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
