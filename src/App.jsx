@@ -15,7 +15,7 @@ import WeightControls from './components/WeightControls';
 import PromptExporter from './components/PromptExporter';
 import ManualPickMode from './components/ManualPickMode';
 import AiInterpretationPanel from './components/AiInterpretationPanel';
-import AuthUserBadge from './components/AuthUserBadge.jsx';
+import AppHeader from './components/AppHeader.jsx';
 import { useLanguage } from './context/LanguageContext';
 
 export default function App() {
@@ -314,130 +314,69 @@ ${summaryObj.advice}
       <div className="nebula-glow-right"></div>
 
       {/* ===== HEADER ===== */}
-      <header style={{
-        background: 'linear-gradient(135deg, #090615 0%, #1a103c 50%, #090615 100%)',
-        padding: '0 24px',
-        boxShadow: '0 2px 20px rgba(0,0,0,0.4)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        borderBottom: '1px solid rgba(229, 193, 88, 0.2)'
-      }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {/* Visual Tarot Card icon */}
-            <div style={{
-              width: 24,
-              height: 38,
-              border: '2px solid #e5c158',
-              borderRadius: 4,
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 0 8px rgba(229, 193, 88, 0.4)'
-            }}>
-              {/* A small golden star inside */}
-              <span style={{ fontSize: '12px', color: '#e5c158', marginTop: '-2px' }}>★</span>
-            </div>
-            <div>
-              <div style={{
-                fontFamily: "'Cinzel', serif",
-                fontSize: '1.375rem',
-                fontWeight: 700,
-                color: '#e5c158',
-                letterSpacing: '0.06em',
-              }}>
-                TarotNow
-              </div>
-              <div style={{ fontSize: '0.6875rem', color: 'rgba(229,193,88,0.7)', letterSpacing: '0.15em', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif" }}>
-                {t('app.subtitle', 'Trải Bài Tarot & Luận Giải AI')}
-              </div>
-            </div>
+      <AppHeader
+        theme="tarot"
+        logo={
+          <div style={{
+            width: 20,
+            height: 32,
+            border: '2px solid #e5c158',
+            borderRadius: 4,
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 0 8px rgba(229, 193, 88, 0.4)'
+          }}>
+            <span style={{ fontSize: '10px', color: '#e5c158', marginTop: '-2px' }}>★</span>
           </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        }
+        title="TarotNow"
+        subtitle={t('app.subtitle', 'Trải Bài Tarot & Luận Giải AI')}
+        navItems={[
+          {
+            icon: '☯️',
+            label: t('nav.iching_link', 'Lập quẻ Dịch'),
+            href: '/kinhdich/',
+          },
+        ]}
+        onLanguageToggle={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
+        languageLabel={language === 'vi' ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}
+        primaryAction={
+          drawnCards.length > 0 ? (
             <button
-              onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
+              onClick={handleResetApp}
               style={{
                 background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(229,193,88,0.25)',
+                border: '1px solid rgba(229,193,88,0.3)',
                 borderRadius: 8,
-                color: '#e5c158',
-                padding: '6px 12px',
+                color: 'rgba(255,255,255,0.9)',
+                padding: '7px 14px',
                 cursor: 'pointer',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
+                fontSize: '0.875rem',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 5,
-                transition: 'all 0.2s',
+                gap: 6,
                 fontFamily: "'Inter', sans-serif",
+                transition: 'background 0.2s, border-color 0.2s',
+                whiteSpace: 'nowrap',
+                width: '100%',
+                justifyContent: 'center',
               }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'rgba(229,193,88,0.1)';
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(229, 193, 88, 0.1)';
                 e.currentTarget.style.borderColor = '#e5c158';
               }}
-              onMouseLeave={e => {
+              onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                e.currentTarget.style.borderColor = 'rgba(229,193,88,0.25)';
+                e.currentTarget.style.borderColor = 'rgba(229,193,88,0.3)';
               }}
             >
-              {language === 'vi' ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}
+              {t('nav.new_cast', '🔄 Trải bài mới')}
             </button>
-
-            <a 
-              href="/kinhdich/"
-              style={{
-                color: 'rgba(255, 255, 255, 0.75)',
-                textDecoration: 'none',
-                fontSize: '0.875rem',
-                fontFamily: "'Inter', sans-serif",
-                transition: 'color 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = '#e5c158'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)'}
-            >
-              {t('nav.iching_link', '☯️ Lập quẻ Dịch')}
-            </a>
-
-            <AuthUserBadge />
-
-            {(drawnCards.length > 0) && (
-              <button
-                onClick={handleResetApp}
-                style={{
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(229,193,88,0.3)',
-                  borderRadius: 8,
-                  color: 'rgba(255,255,255,0.9)',
-                  padding: '8px 16px',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontFamily: "'Inter', sans-serif",
-                  transition: 'background 0.2s, border-color 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(229, 193, 88, 0.1)';
-                  e.currentTarget.style.borderColor = '#e5c158';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                  e.currentTarget.style.borderColor = 'rgba(229,193,88,0.3)';
-                }}
-              >
-                {t('nav.new_cast', '🔄 Trải bài mới')}
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+          ) : null
+        }
+      />
 
       <main className="panels-container">
         {/* Left Side: Setup & Settings */}
