@@ -402,7 +402,7 @@ ${summaryObj.advice}
 
           {/* ── Manual Pick Mode (parallel) ── */}
           {activeMode === 'manual' && (
-            <ManualPickMode tarotCards={tarotCards} />
+            <ManualPickMode tarotCards={tarotCards} weights={weights} setWeights={setWeights} />
           )}
 
           {/* ── Random Draw Mode ── */}
@@ -667,10 +667,10 @@ ${summaryObj.advice}
             </div>
           )}
 
-          {/* Export Prompt Panel */}
+          {/* AI Panel & Export Prompt Panel */}
           {drawnCards.length > 0 && !isDrawing && (
             <>
-              <PromptExporter
+              <AiInterpretationPanel
                 question={currentDrawnQuestion}
                 drawnCards={drawnCards}
                 spreadName={t('spread.name.' + activeSpread, SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh')}
@@ -679,7 +679,7 @@ ${summaryObj.advice}
                 interpretationSummary={formattedSummaryText}
                 getCardMeaning={getCardMeaning}
               />
-              <AiInterpretationPanel
+              <PromptExporter
                 question={currentDrawnQuestion}
                 drawnCards={drawnCards}
                 spreadName={t('spread.name.' + activeSpread, SPREADS.find(s => s.id === activeSpread)?.name || 'Tùy chỉnh')}
@@ -696,36 +696,10 @@ ${summaryObj.advice}
 
         </section>
 
-        {/* Right Side: Deck Stack & Weights & History */}
-        <section className="right-panel-stack" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-
-          {/* Deck pile */}
-          <div className="glass-panel" style={{ textAlign: 'center' }}>
-            <DeckPile
-              remainingCount={tarotCards.length - (isDrawing ? 0 : drawnCards.length)}
-              isShuffling={isShuffling}
-              onShuffle={handleShuffle}
-            />
-          </div>
-
-          {/* Weight Configs */}
-          <WeightControls
-            weights={weights}
-            onChange={setWeights}
-            onPresetSelect={setWeights}
-          />
-
-          <button
-            type="button"
-            className="preset-badge-btn"
-            style={{ alignSelf: 'stretch', borderRadius: '8px', padding: '10px' }}
-            onClick={handleRandomizeWeights}
-          >
-            {t('weights.random_btn', '🎲 Trộn Trọng Số Ngẫu Nhiên')}
-          </button>
-
-          {/* Session History */}
-          <div className="glass-panel history-panel">
+        {/* Secondary Panels Below Draw Stage (Deck Pile, Weight Controls & History) */}
+        {/* ── Full-Width Session History ── */}
+        <section style={{ width: '100%', maxWidth: '1280px', margin: '28px auto 0' }}>
+          <div className="glass-panel history-panel" style={{ width: '100%' }}>
             <div className="card-header-flex" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '10px', marginBottom: '14px', alignItems: 'center' }}>
               <h3 className="settings-title" style={{ margin: 0 }}>
                 {t('history.title', 'Lịch sử trải bài')}
@@ -760,7 +734,7 @@ ${summaryObj.advice}
                   background: 'rgba(255, 255, 255, 0.02)',
                   border: '1px dashed rgba(229, 193, 88, 0.25)',
                   borderRadius: 10,
-                  padding: '16px 14px',
+                  padding: '20px 16px',
                   textAlign: 'center',
                   display: 'flex',
                   flexDirection: 'column',

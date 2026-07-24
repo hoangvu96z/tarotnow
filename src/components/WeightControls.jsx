@@ -56,6 +56,15 @@ export default function WeightControls({ weights, onChange, onPresetSelect }) {
     });
   };
 
+  const handleRandomizeWeights = () => {
+    const keys = ['major', 'cups', 'pentacles', 'swords', 'wands'];
+    const newW = {};
+    keys.forEach(k => {
+      newW[k] = Math.floor(Math.random() * 80) + 10;
+    });
+    onChange(newW);
+  };
+
   const handleResetWeights = () => {
     onChange({ major: 20, cups: 20, pentacles: 20, swords: 20, wands: 20 });
   };
@@ -76,7 +85,7 @@ export default function WeightControls({ weights, onChange, onPresetSelect }) {
           className="reset-weights-btn"
           onClick={handleResetWeights}
         >
-          {t('weights.reset_btn', 'Đặt lại đều')}
+          🔄 {t('weights.reset_btn', 'Đặt lại đều')}
         </button>
       </div>
       <p className="settings-subtitle">{t('weights.subtitle', 'Điều chỉnh xác suất rút bài cho từng Arcana/Suit')}</p>
@@ -120,11 +129,35 @@ export default function WeightControls({ weights, onChange, onPresetSelect }) {
                 value={val}
                 onChange={(e) => handleSliderChange(key, e.target.value)}
                 className="custom-range-slider"
-                style={{ '--track-fill': `${pct}%`, '--thumb-color': color }}
+                style={{ '--track-fill': `${val}%`, '--thumb-color': color }}
               />
             </div>
           );
         })}
+      </div>
+
+      {/* Randomize Weights Button */}
+      <div style={{ marginTop: 16 }}>
+        <button
+          type="button"
+          className="preset-badge-btn"
+          style={{
+            width: '100%',
+            padding: '10px 16px',
+            borderRadius: 12,
+            border: '1px solid rgba(229, 193, 88, 0.4)',
+            background: 'rgba(229, 193, 88, 0.12)',
+            color: '#e5c158',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            textAlign: 'center',
+            transition: 'all 0.2s',
+          }}
+          onClick={handleRandomizeWeights}
+        >
+          🎲 {t('weights.random_btn', 'Trộn Trọng Số Ngẫu Nhiên')}
+        </button>
       </div>
 
       {total === 0 && (

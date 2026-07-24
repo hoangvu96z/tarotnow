@@ -120,20 +120,13 @@ body {
 
 /* Main Panels Grid */
 .panels-container {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 32px;
-  align-items: start;
   max-width: 1280px;
   width: 100%;
   margin: 24px auto;
   padding: 0 16px;
-}
-
-@media (min-width: 900px) {
-  .panels-container {
-    grid-template-columns: 1fr 380px;
-  }
 }
 
 /* Glass Panels */
@@ -1670,16 +1663,476 @@ input:checked + .toggle-slider:before {
   margin-bottom: 16px;
 }
 
-.manual-copy-text {
-  background: rgba(0,0,0,0.35);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
-  padding: 14px;
-  font-family: 'Courier New', monospace;
+.manual-copy-text,
+.output-text {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(229, 193, 88, 0.2);
+  border-radius: 10px;
+  padding: 14px 16px;
+  font-family: 'Courier New', Consolas, monospace;
   font-size: 13px;
-  color: var(--text-primary);
+  color: #e2d9f3;
   white-space: pre-wrap;
+  word-break: break-word;
   margin: 0;
-  line-height: 1.7;
+  line-height: 1.6;
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(229, 193, 88, 0.4) rgba(0, 0, 0, 0.2);
 }
+
+.manual-copy-text::-webkit-scrollbar,
+.output-text::-webkit-scrollbar {
+  width: 6px;
+}
+
+.manual-copy-text::-webkit-scrollbar-thumb,
+.output-text::-webkit-scrollbar-thumb {
+  background: rgba(229, 193, 88, 0.4);
+  border-radius: 4px;
+}
+
+.manual-copy-text::-webkit-scrollbar-track,
+.output-text::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ── 3D TAROT PICKING & DECK FAN SYSTEM ── */
+.manual-3d-deck-stage {
+  perspective: 1200px;
+  position: relative;
+  width: 100%;
+  margin: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 3D Floating Slot Tray at top - Full Width 1280px */
+.manual-3d-tray {
+  width: 100%;
+  max-width: 1280px;
+  background: rgba(15, 10, 30, 0.75);
+  border: 1px solid rgba(229, 193, 88, 0.35);
+  backdrop-filter: blur(16px);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 28px;
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.65), inset 0 0 30px rgba(229, 193, 88, 0.08);
+}
+
+.manual-3d-tray-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.manual-3d-tray-title {
+  font-family: var(--font-heading, 'Cinzel', serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e5c158;
+  letter-spacing: 0.06em;
+}
+
+/* 6 columns per row, max 3 rows, centered alignment */
+.manual-3d-slots-container {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  justify-content: center;
+  justify-items: center;
+  align-items: center;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+/* Shuffle Deck Animation */
+@keyframes deckShuffleAnim {
+  0% {
+    transform: translate3d(0, 0, 0) rotateZ(0deg);
+  }
+  30% {
+    transform: translate3d(var(--x-shift, 0px), -25px, 60px) rotateZ(-12deg) scale(1.08);
+  }
+  60% {
+    transform: translate3d(calc(var(--x-shift, 0px) * -0.5), -15px, 30px) rotateZ(12deg) scale(0.95);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotateZ(0deg);
+  }
+}
+
+.manual-3d-fan-arc.shuffling .manual-3d-fan-card {
+  animation: deckShuffleAnim 0.5s ease-in-out forwards;
+}
+
+/* 3D Grid Shuffle Animation */
+@keyframes gridShuffleAnim {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  40% {
+    transform: scale(0.85) rotate(6deg) translateY(-12px);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1) rotate(0deg) translateY(0);
+    opacity: 1;
+  }
+}
+
+.manual-card-grid.shuffling .manual-3d-card-item {
+  animation: gridShuffleAnim 0.5s ease-in-out forwards;
+}
+
+/* Horizontal 1-Row Deck Control Buttons */
+.manual-deck-controls-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 520px;
+  margin: 20px auto 10px;
+}
+
+.manual-action-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 30px;
+  font-family: var(--font-heading, 'Cinzel', serif);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.manual-action-btn.primary {
+  background: linear-gradient(135deg, #e5c158 0%, #cfa63a 100%);
+  color: #0f0622;
+  border: none;
+  box-shadow: 0 4px 18px rgba(229, 193, 88, 0.4);
+}
+
+.manual-action-btn.primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(229, 193, 88, 0.6);
+}
+
+.manual-action-btn.secondary {
+  background: rgba(229, 193, 88, 0.12);
+  color: #e5c158;
+  border: 1.5px solid rgba(229, 193, 88, 0.5);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+}
+
+.manual-action-btn.secondary:hover:not(:disabled) {
+  background: rgba(229, 193, 88, 0.22);
+  border-color: #e5c158;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(229, 193, 88, 0.3);
+}
+
+.manual-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Weight Settings Modal Popup */
+.weight-modal-container {
+  position: relative;
+  width: 90%;
+  max-width: 600px;
+  padding: 28px 32px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(26, 16, 60, 0.96) 0%, rgba(15, 6, 34, 0.98) 100%);
+  border: 1.5px solid rgba(229, 193, 88, 0.45);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(229, 193, 88, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: modalAppear 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.weight-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(229, 193, 88, 0.25);
+  padding-bottom: 14px;
+}
+
+.weight-modal-title {
+  margin: 0;
+  font-family: var(--font-heading, 'Cinzel', serif);
+  color: #e5c158;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.weight-modal-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.weight-modal-close:hover {
+  background: rgba(229, 193, 88, 0.25);
+  border-color: #e5c158;
+  color: #e5c158;
+}
+
+.weight-modal-container .weight-settings-card {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.weight-modal-container .card-header-flex {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.weight-modal-container .card-header-flex .settings-title {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .manual-3d-slots-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 550px) {
+  .manual-3d-slots-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.manual-3d-slot-box {
+  position: relative;
+  width: 100%;
+  max-width: 155px;
+  aspect-ratio: 2 / 3.3;
+  border-radius: 12px;
+  border: 2px dashed rgba(229, 193, 88, 0.35);
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+.manual-3d-slot-box.filled {
+  border: 2.5px solid #e5c158;
+  background: rgba(229, 193, 88, 0.12);
+  box-shadow: 0 0 30px rgba(229, 193, 88, 0.5), 0 8px 25px rgba(0, 0, 0, 0.6);
+  animation: trayCardAppear 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes trayCardAppear {
+  0% {
+    transform: scale(0.3) rotateY(180deg) translateY(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) rotateY(0deg) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 3D Flip animation inside Tray Slot when revealed */
+.manual-3d-slot-flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 10px;
+}
+
+.manual-3d-slot-flip.flipped {
+  transform: rotateY(180deg);
+}
+
+.manual-3d-slot-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.manual-3d-slot-face.back {
+  transform: rotateY(0deg);
+  z-index: 2;
+}
+
+.manual-3d-slot-face.front {
+  transform: rotateY(180deg);
+  background: #0c081a;
+}
+
+.manual-3d-slot-num {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(229, 193, 88, 0.8);
+  font-family: var(--font-heading, 'Cinzel', serif);
+}
+
+.manual-3d-slot-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* View Mode Tabs */
+.manual-view-modes {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.manual-view-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(229, 193, 88, 0.25);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manual-view-btn.active {
+  background: rgba(229, 193, 88, 0.2);
+  border-color: #e5c158;
+  color: #e5c158;
+  box-shadow: 0 0 12px rgba(229, 193, 88, 0.3);
+}
+
+/* Red Velvet Tarot Reading Mat */
+.tarot-red-cloth-mat {
+  width: 100%;
+  max-width: 1280px;
+  margin: 12px auto 28px;
+  background: radial-gradient(circle at 50% 40%, #7a0c1e 0%, #4a0410 60%, #260107 100%);
+  border: 2px solid rgba(229, 193, 88, 0.45);
+  border-radius: 24px;
+  padding: 24px 12px 36px;
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.8),
+    inset 0 0 60px rgba(0, 0, 0, 0.85),
+    inset 0 0 20px rgba(229, 193, 88, 0.2);
+  position: relative;
+}
+
+/* 3D Curved Fan Arc Container */
+.manual-3d-fan-stage-wrapper {
+  width: 100%;
+  max-width: 1240px;
+  overflow-x: auto;
+  padding: 10px 0 20px;
+  margin: 0 auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(229, 193, 88, 0.4) transparent;
+}
+
+.manual-3d-fan-arc {
+  position: relative;
+  width: 100%;
+  min-width: 1100px;
+  max-width: 1280px;
+  height: 180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1600px;
+  transform-style: preserve-3d;
+}
+
+.manual-3d-fan-card {
+  position: absolute;
+  width: 72px;
+  height: 118px;
+  border-radius: 8px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: box-shadow 0.2s ease, border-color 0.2s, filter 0.2s, opacity 0.3s ease;
+  border: 1.5px solid rgba(229, 193, 88, 0.35);
+  box-shadow: -4px 6px 18px rgba(0, 0, 0, 0.6);
+  transform-origin: center center;
+}
+
+.manual-3d-fan-card:hover:not(.disabled) {
+  z-index: 9999 !important;
+  border-color: #e5c158;
+  box-shadow: 0 0 25px rgba(229, 193, 88, 0.9), 0 0 10px #ffffff;
+  filter: brightness(1.25);
+}
+
+/* 3D Grid Item with Perspective & Tilt */
+.manual-3d-card-item {
+  position: relative;
+  aspect-ratio: 2 / 3.3;
+  border-radius: 8px;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  perspective: 800px;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s, border-color 0.3s;
+  border: 1.5px solid rgba(229, 193, 88, 0.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.manual-3d-card-item:hover:not(.disabled) {
+  z-index: 20;
+  transform: translateY(-10px) translateZ(30px) scale(1.08) rotateX(8deg);
+  border-color: #e5c158;
+  box-shadow: 0 14px 30px rgba(229, 193, 88, 0.5), 0 0 15px rgba(229, 193, 88, 0.3);
+}
+
+.manual-3d-card-item.selected {
+  border-color: #e5c158;
+  box-shadow: 0 0 24px rgba(229, 193, 88, 0.7), 0 0 8px #e5c158;
+  transform: translateY(-8px) scale(1.05);
+}
+
+.manual-3d-card-item.disabled {
+  opacity: 0.35;
+  filter: grayscale(0.7);
+  cursor: not-allowed;
+}
+
 

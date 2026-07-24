@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { getCardMeaning } from '../utils/tarotLogic';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import AiInterpretationPanel from './AiInterpretationPanel';
+import ManualPickSetup from './manual/ManualPickSetup';
+import Manual3DTray from './manual/Manual3DTray';
+import ManualDeckStage from './manual/ManualDeckStage';
+import WeightSettingsModal from './manual/WeightSettingsModal';
 
 const CONTEXTS_MANUAL = [
   { id: 'general', labelVi: '🌟 Tổng quát', labelEn: '🌟 General' },
@@ -10,10 +15,11 @@ const CONTEXTS_MANUAL = [
   { id: 'action',  labelVi: '⚖️ Lựa chọn',   labelEn: '⚖️ Choice' },
 ];
 
-export default function ManualPickMode({ tarotCards }) {
+export default function ManualPickMode({ tarotCards, weights, setWeights }) {
   const { language } = useLanguage();
+  const { isAuthenticated, login } = useAuth();
 
-  const [phase, setPhase] = useState('setup');
+  const [phase, setPhase] = useState('setup'); // 'setup' | 'picking' | 'results'
   const [pickCount, setPickCount] = useState(3);
   const [question, setQuestion] = useState('');
   const [questionError, setQuestionError] = useState('');
@@ -26,6 +32,10 @@ export default function ManualPickMode({ tarotCards }) {
   const [copyDone, setCopyDone] = useState(false);
   const [copyPromptDone, setCopyPromptDone] = useState(false);
   const [selectedModalCard, setSelectedModalCard] = useState(null);
+  const [viewStyle, setViewStyle] = useState('fan'); // 'fan' | 'grid'
+  const [suitCategory] = useState('all');
+  const [isShufflingDeck, setIsShufflingDeck] = useState(false);
+  const [showWeightModal, setShowWeightModal] = useState(false);
 
   const shuffle = (arr) => {
     const a = [...arr];
@@ -42,20 +52,30 @@ export default function ManualPickMode({ tarotCards }) {
     }
   }, [tarotCards]);
 
+  const filteredShuffledOrder = useMemo(() => {
+    if (suitCategory === 'all') return shuffledOrder;
+    return shuffledOrder.filter(cardIdx => {
+      const card = tarotCards[cardIdx];
+      if (!card) return false;
+      if (suitCategory === 'major') return card.arcana === 'Major';
+      if (suitCategory === 'cups') return card.suit === 'Cups';
+      if (suitCategory === 'pentacles') return card.suit === 'Pentacles';
+      if (suitCategory === 'swords') return card.suit === 'Swords';
+      if (suitCategory === 'wands') return card.suit === 'Wands';
+      return true;
+    });
+  }, [shuffledOrder, suitCategory, tarotCards]);
+
   const handleStartPicking = () => {
+    if (!question.trim() || question.trim().length < 5) {
+      setQuestionError(
+        language === 'en'
+          ? 'Please enter a detailed question (at least 5 characters).'
+          : 'Vui lòng nhập câu hỏi rõ ràng (ít nhất 5 ký tự).'
+      );
+      return;
+    }
     setQuestionError('');
-    if (!question.trim()) {
-      setQuestionError(language === 'en'
-        ? 'Please enter your question before selecting cards!'
-        : 'Vui lòng nhập câu hỏi trước khi chọn bài!');
-      return;
-    }
-    if (question.trim().length < 5) {
-      setQuestionError(language === 'en'
-        ? 'Question too short (min 5 characters).'
-        : 'Câu hỏi quá ngắn (tối thiểu 5 ký tự).');
-      return;
-    }
     setShuffledOrder(shuffle(tarotCards.map((_, i) => i)));
     setSelectedIds([]);
     setDrawnCards([]);
@@ -63,33 +83,37 @@ export default function ManualPickMode({ tarotCards }) {
     setPhase('picking');
   };
 
-  const handleToggleCard = (cardId) => {
-    setSelectedIds(prev => {
-      if (prev.includes(cardId)) return prev.filter(id => id !== cardId);
-      if (prev.length >= pickCount) return prev;
-      return [...prev, cardId];
-    });
+  const handleShuffleDeck = () => {
+    if (isShufflingDeck) return;
+    setIsShufflingDeck(true);
+    setTimeout(() => {
+      setShuffledOrder(shuffle(tarotCards.map((_, i) => i)));
+      setIsShufflingDeck(false);
+    }, 500);
+  };
+
+  const handlePickCard = (cardId) => {
+    if (selectedIds.includes(cardId)) return;
+    if (selectedIds.length >= pickCount) return;
+
+    const card = tarotCards.find(c => c.id === cardId);
+    if (!card) return;
+
+    const orientation = Math.random() < 0.5 ? 'upright' : 'reversed';
+    const drawnItem = { ...card, orientation, drawPosition: selectedIds.length + 1 };
+
+    setSelectedIds(prev => [...prev, cardId]);
+    setDrawnCards(prev => [...prev, drawnItem]);
   };
 
   useEffect(() => {
     if (selectedIds.length === pickCount && phase === 'picking') {
       const timer = setTimeout(() => {
-        const results = selectedIds.map((id, i) => {
-          const card = tarotCards.find(c => c.id === id);
-          const orientation = Math.random() < 0.5 ? 'upright' : 'reversed';
-          return { ...card, orientation, drawPosition: i + 1 };
-        });
-        setDrawnCards(results);
         setPhase('results');
-        results.forEach((_, idx) => {
-          setTimeout(() => {
-            setRevealedSet(prev => new Set([...prev, idx]));
-          }, idx * 250);
-        });
-      }, 300);
+      }, 500);
       return () => clearTimeout(timer);
     }
-  }, [selectedIds, pickCount, phase, tarotCards]);
+  }, [selectedIds, pickCount, phase]);
 
   useEffect(() => {
     if (phase === 'results' && resultRef.current) {
@@ -97,23 +121,21 @@ export default function ManualPickMode({ tarotCards }) {
     }
   }, [phase]);
 
-  // Simple card list (no interpretation)
-  const simpleCardList = useMemo(() => {
+  // Short summary text for export
+  const summaryText = useMemo(() => {
     if (!drawnCards.length) return '';
     const header = language === 'en'
-      ? `Question: "${question}"\n\nDrawn cards:\n`
-      : `Câu hỏi: "${question}"\n\nCác lá bài đã chọn:\n`;
-    const lines = drawnCards.map((c, i) => {
-      const pos = language === 'en' ? `Card ${i + 1}` : `Lá ${i + 1}`;
-      const ori = c.orientation === 'reversed'
-        ? (language === 'en' ? 'Reversed' : 'Ngược')
-        : (language === 'en' ? 'Upright' : 'Xuôi');
+      ? `Tarot Reading Summary — Question: "${question}"\n\n`
+      : `Tóm tắt trải bài Tarot — Câu hỏi: "${question}"\n\n`;
+    const lines = drawnCards.map((c, idx) => {
+      const pos = language === 'en' ? `Card ${idx + 1}` : `Lá ${idx + 1}`;
+      const ori = c.orientation === 'reversed' ? (language === 'en' ? 'Reversed' : 'Ngược') : (language === 'en' ? 'Upright' : 'Xuôi');
       return `${pos}: ${c.name} — ${ori}`;
     }).join('\n');
     return header + lines;
   }, [drawnCards, language, question]);
 
-  // Full AI prompt
+  // Full AI prompt for export
   const aiPromptText = useMemo(() => {
     if (!drawnCards.length) return '';
     const isEn = language === 'en';
@@ -139,212 +161,78 @@ export default function ManualPickMode({ tarotCards }) {
 
     const instruction = isEn
       ? 'Please interpret this spread in a comprehensive and deep manner. Analyze the meaning of each card, the energetic connections between them, and compile a cohesive guidance message for my question. Conclude with a clear key takeaway or concrete action step.'
-      : 'Hãy luận giải trải bài này một cách toàn diện và sâu sắc. Phân tích ý nghĩa từng lá, mối liên kết năng lượng giữa chúng và tổng hợp thành thông điệp khuyên bảo cụ thể cho câu hỏi của tôi. Kết thúc bằng một thông điệp đúc kết hoặc hành động cụ thể tôi nên làm.';
+      : 'Vui lòng giải nghĩa trải bài này một cách toàn diện và sâu sắc. Phân tích ý nghĩa từng lá bài, sự kết nối năng lượng giữa các lá bài và đưa ra thông điệp hướng dẫn tổng thể cho câu hỏi của tôi. Kết luận bằng một lời khuyên hoặc hành động cụ thể.';
 
-    const reqBullets = isEn
-      ? '- Use fluent, deep, and objective English.\n- Use clear headings for each section.\n- Conclude with a concrete action step.'
-      : '- Sử dụng tiếng Việt, viết trôi chảy, sâu sắc và khách quan.\n- Có tiêu đề rõ ràng cho từng phần.\n- Kết luận bằng hành động cụ thể tôi nên làm.';
-
-    return (
-      `${sysRole}\n\n` +
-      `${isEn ? 'MY QUESTION' : 'CÂU HỎI CỦA TÔI'}:\n"${question}"\n\n` +
-      `${isEn ? 'DRAWN CARDS (manually chosen by intuition)' : 'CÁC LÁ BÀI ĐÃ CHỌN (chọn theo trực giác)'}:\n${cardsSection}\n` +
-      `${isEn ? 'INTERPRETATION GUIDE FOR AI' : 'HƯỚNG DẪN GIẢI NGHĨA CHO AI'}:\n${instruction}\n\n` +
-      `${isEn ? 'Response formatting requirements' : 'Yêu cầu định dạng phản hồi'}:\n${reqBullets}`
-    );
+    return `${sysRole}\n\n${isEn ? 'MY QUESTION:' : 'CÂU HỎI CỦA TÔI:'}\n"${question}"\n\n${isEn ? 'CHOSEN CARDS:' : 'CÁC LÁ BÀI ĐÃ CHỌN:'}\n${cardsSection}\n${instruction}`;
   }, [drawnCards, language, question]);
 
-  const handleCopySimple = () => {
-    navigator.clipboard.writeText(simpleCardList).then(() => {
-      setCopyDone(true);
-      setTimeout(() => setCopyDone(false), 2000);
-    });
+  const handleCopyText = () => {
+    navigator.clipboard.writeText(summaryText);
+    setCopyDone(true);
+    setTimeout(() => setCopyDone(false), 2000);
   };
 
   const handleCopyPrompt = () => {
-    navigator.clipboard.writeText(aiPromptText).then(() => {
-      setCopyPromptDone(true);
-      setTimeout(() => setCopyPromptDone(false), 2000);
-    });
-  };
-
-  const handleReset = () => {
-    setPhase('setup');
-    setSelectedIds([]);
-    setDrawnCards([]);
-    setRevealedSet(new Set());
+    navigator.clipboard.writeText(aiPromptText);
+    setCopyPromptDone(true);
+    setTimeout(() => setCopyPromptDone(false), 2000);
   };
 
   if (!tarotCards.length) return null;
 
   return (
-    <div className="manual-pick-root">
-
-      {/* ─── SETUP ─── */}
+    <div className="manual-pick-container">
+      {/* ─── SETUP PHASE ─── */}
       {phase === 'setup' && (
-        <div className="glass-panel manual-setup-panel">
-          <div className="manual-setup-header">
-            <div className="manual-setup-icon">🖐</div>
-            <h2 className="manual-setup-title">
-              {language === 'en' ? 'Choose Your Cards' : 'Chọn Bài Thủ Công'}
-            </h2>
-            <p className="manual-setup-desc">
-              {language === 'en'
-                ? 'All 78 cards will be laid face-down. Trust your intuition and select the cards that call to you.'
-                : 'Toàn bộ 78 lá bài sẽ được xếp úp mặt. Hãy tin vào trực giác và chọn những lá bài bạn cảm thấy kết nối.'}
-            </p>
-          </div>
-
-          <div className="manual-setup-controls">
-            {/* Question — required */}
-            <div className="form-group" style={{ marginBottom: 24, textAlign: 'left' }}>
-              <label className="form-label">
-                {language === 'en' ? 'Your Question *' : 'Câu hỏi của bạn *'}
-              </label>
-              <textarea
-                className="custom-textarea"
-                style={{ minHeight: 90, borderColor: questionError ? '#eb5e55' : undefined }}
-                placeholder={language === 'en'
-                  ? 'e.g. What does the universe want me to know right now?'
-                  : 'VD: Vũ trụ muốn tôi biết điều gì vào lúc này?'}
-                value={question}
-                onChange={e => { setQuestion(e.target.value); if (questionError) setQuestionError(''); }}
-              />
-              {questionError && (
-                <div className="error-alert" style={{ marginTop: 8, padding: '8px 14px' }}>
-                  {questionError}
-                </div>
-              )}
-            </div>
-
-            {/* Card count */}
-            <div className="manual-count-selector">
-              <label className="form-label" style={{ textAlign: 'center', display: 'block' }}>
-                {language === 'en' ? 'How many cards?' : 'Bạn muốn chọn bao nhiêu lá?'}
-              </label>
-              <div className="manual-count-buttons">
-                {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                  <button key={n} className={`manual-count-btn${pickCount === n ? ' active' : ''}`} onClick={() => setPickCount(n)}>{n}</button>
-                ))}
-              </div>
-              <p className="manual-count-hint">
-                {language === 'en' ? `Selected: ${pickCount} card${pickCount > 1 ? 's' : ''}` : `Đã chọn: ${pickCount} lá bài`}
-              </p>
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: 28 }}>
-              <button
-                className="draw-trigger-btn"
-                style={{ opacity: !question.trim() || question.trim().length < 5 ? 0.45 : 1, cursor: !question.trim() || question.trim().length < 5 ? 'not-allowed' : 'pointer' }}
-                disabled={!question.trim() || question.trim().length < 5}
-                onClick={handleStartPicking}
-              >
-                {language === 'en' ? '🌙 Spread the Deck' : '🌙 Trải Bộ Bài Ra'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ManualPickSetup
+          question={question}
+          setQuestion={setQuestion}
+          questionError={questionError}
+          pickCount={pickCount}
+          setPickCount={setPickCount}
+          onStartPicking={handleStartPicking}
+        />
       )}
 
-      {/* ─── PICKING ─── */}
+      {/* ─── PICKING OR RESULTS TRAY STAGE ─── */}
+      {(phase === 'picking' || phase === 'results') && (
+        <Manual3DTray
+          pickCount={pickCount}
+          selectedIds={selectedIds}
+          drawnCards={drawnCards}
+          onSelectCard={(card) => setSelectedModalCard(card)}
+        />
+      )}
+
+      {/* ─── PICKING DECK STAGE ─── */}
       {phase === 'picking' && (
-        <div className="manual-picking-phase">
-          <div className="manual-pick-sticky-bar glass-panel">
-            <div className="manual-pick-counter">
-              <span className="manual-pick-count-current">{selectedIds.length}</span>
-              <span className="manual-pick-count-sep"> / </span>
-              <span className="manual-pick-count-total">{pickCount}</span>
-              <span className="manual-pick-count-label">&nbsp;{language === 'en' ? 'cards chosen' : 'lá đã chọn'}</span>
-            </div>
-            <div className="manual-pick-progress-bar">
-              <div className="manual-pick-progress-fill" style={{ width: `${(selectedIds.length / pickCount) * 100}%` }} />
-            </div>
-            {selectedIds.length > 0 && (
-              <button className="reset-weights-btn" onClick={() => setSelectedIds([])}>
-                {language === 'en' ? 'Clear selection' : 'Bỏ chọn tất cả'}
-              </button>
-            )}
-          </div>
-
-          <p className="manual-pick-instruction">
-            {selectedIds.length < pickCount
-              ? (language === 'en'
-                  ? `Follow your intuition — choose ${pickCount - selectedIds.length} more card${pickCount - selectedIds.length > 1 ? 's' : ''}`
-                  : `Hãy theo trực giác — chọn thêm ${pickCount - selectedIds.length} lá nữa`)
-              : (language === 'en' ? '✨ Reading the cards...' : '✨ Đang đọc bài...')}
-          </p>
-
-          <div className="manual-card-grid">
-            {shuffledOrder.map((cardIdx) => {
-              const card = tarotCards[cardIdx];
-              if (!card) return null;
-              const selIdx = selectedIds.indexOf(card.id);
-              const isSelected = selIdx !== -1;
-              const isDisabled = !isSelected && selectedIds.length >= pickCount;
-              return (
-                <div
-                  key={card.id}
-                  className={`manual-card-slot${isSelected ? ' selected' : ''}${isDisabled ? ' disabled' : ''}`}
-                  onClick={() => !isDisabled && handleToggleCard(card.id)}
-                >
-                  <img
-                    src={`${import.meta.env.BASE_URL}assets/cards/card-back.jpg`}
-                    alt="Tarot card"
-                    className="manual-card-back-img"
-                    loading="lazy"
-                  />
-                  {isSelected && <div className="manual-card-selected-badge">{selIdx + 1}</div>}
-                  <div className="manual-card-hover-glow" />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <ManualDeckStage
+          tarotCards={tarotCards}
+          filteredShuffledOrder={filteredShuffledOrder}
+          selectedIds={selectedIds}
+          pickCount={pickCount}
+          viewStyle={viewStyle}
+          setViewStyle={setViewStyle}
+          isShufflingDeck={isShufflingDeck}
+          onShuffleDeck={handleShuffleDeck}
+          onPickCard={handlePickCard}
+          weights={weights}
+          setWeights={setWeights}
+          onOpenWeightModal={() => setShowWeightModal(true)}
+        />
       )}
 
-      {/* ─── RESULTS ─── */}
+      {/* ─── RESULTS INTERPRETATION & EXPORT ─── */}
       {phase === 'results' && (
         <div ref={resultRef}>
-          {/* Drawn cards reveal */}
-          <div className="glass-panel" style={{ marginBottom: 24 }}>
-            <div className="results-header-container">
-              <h2 className="results-title">{language === 'en' ? '✨ Your Chosen Cards' : '✨ Các Lá Bài Bạn Đã Chọn'}</h2>
-              <p className="results-question-text">
-                {language === 'en' ? 'Question' : 'Câu hỏi'}: "{question}"
-              </p>
-            </div>
-            <div className="manual-results-cards-row">
-              {drawnCards.map((c, idx) => {
-                const isRevealed = revealedSet.has(idx);
-                const isRev = c.orientation === 'reversed';
-                return (
-                  <div
-                    key={c.id}
-                    className={`manual-result-card-wrap${isRevealed ? ' revealed' : ''}`}
-                    style={{ cursor: isRevealed ? 'pointer' : 'default' }}
-                    onClick={() => isRevealed && setSelectedModalCard(c)}
-                  >
-                    <div className="manual-result-pos-badge">{language === 'en' ? `Card ${idx + 1}` : `Lá ${idx + 1}`}</div>
-                    <div className="manual-result-card-flip">
-                      <div className={`manual-result-card-inner${isRevealed ? ' flipped' : ''}`}>
-                        <div className="manual-result-card-face back">
-                          <img src={`${import.meta.env.BASE_URL}assets/cards/card-back.jpg`} alt="back" className="manual-result-card-img" />
-                        </div>
-                        <div className="manual-result-card-face front">
-                          <img src={`${import.meta.env.BASE_URL}${c.image.replace(/^\//, '')}`} alt={c.name} className={`manual-result-card-img${isRev ? ' reversed' : ''}`} />
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'center', marginTop: 8 }}>
-                      <h4 style={{ margin: '0 0 4px', fontFamily: "'Cinzel',serif", fontSize: 11, color: '#fff' }}>{c.name}</h4>
-                      <span className={`card-orientation-badge ${c.orientation}`} style={{ fontSize: 10 }}>
-                        {isRev ? (language === 'en' ? 'Reversed' : 'Ngược') : (language === 'en' ? 'Upright' : 'Xuôi')}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          {/* Question title */}
+          <div className="glass-panel" style={{ marginBottom: 24, textAlign: 'center' }}>
+            <h2 className="results-title" style={{ margin: '0 0 6px' }}>
+              {language === 'en' ? '✨ Your Drawn Reading' : '✨ Trải Bài Của Bạn'}
+            </h2>
+            <p className="results-question-text" style={{ margin: 0 }}>
+              {language === 'en' ? 'Question' : 'Câu hỏi'}: "{question}"
+            </p>
           </div>
 
           {/* 4-Tab Interpretations */}
@@ -387,93 +275,129 @@ export default function ManualPickMode({ tarotCards }) {
             </div>
           </div>
 
-          {/* Copy section — 2 options */}
+          {/* AI Assistant Chat Panel */}
+          <div style={{ marginBottom: 24 }}>
+            <AiInterpretationPanel
+              question={question}
+              cards={drawnCards}
+              mode="manual"
+            />
+          </div>
+
+          {/* Copy section — 2 options (Requires Authentication) */}
           <div className="glass-panel manual-copy-panel">
             <h3 style={{ fontFamily: "'Cinzel',serif", color: 'var(--gold-color)', fontSize: 14, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {language === 'en' ? '🤖 Export for AI Reading' : '🤖 Xuất để nhờ AI luận giải'}
+              {language === 'en' ? '🤖 Export for AI Reading' : '🤖 Xuất dữ liệu luận giải cho AI'}
             </h3>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 16px', lineHeight: 1.6 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: '0 0 14px' }}>
               {language === 'en'
-                ? 'Copy the full AI prompt below and paste into ChatGPT / Claude / Gemini for a detailed reading.'
+                ? 'Copy AI prompt below and paste into ChatGPT / Claude / Gemini'
                 : 'Sao chép prompt AI bên dưới và dán vào ChatGPT / Claude / Gemini để nhận luận giải chi tiết.'}
             </p>
 
-            {/* Full AI Prompt */}
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gold-color)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {language === 'en' ? 'Full AI Prompt (recommended)' : 'Prompt AI đầy đủ (khuyên dùng)'}
-                </span>
-                <button
-                  className="draw-trigger-btn"
-                  style={{ padding: '6px 16px', fontSize: 12 }}
-                  onClick={handleCopyPrompt}
+            {!isAuthenticated ? (
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px dashed rgba(229, 193, 88, 0.25)',
+                  borderRadius: 12,
+                  padding: '24px 16px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 12,
+                  marginTop: 14,
+                }}
+              >
+                <span style={{ fontSize: '1.8rem' }}>🔒</span>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.88rem',
+                    color: 'rgba(255, 255, 255, 0.75)',
+                    lineHeight: 1.5,
+                    maxWidth: 640,
+                  }}
                 >
-                  {copyPromptDone
-                    ? (language === 'en' ? '✓ Copied!' : '✓ Đã sao chép!')
-                    : (language === 'en' ? '📋 Copy Prompt' : '📋 Sao chép Prompt')}
+                  {language === 'en'
+                    ? 'You need to log in to use the AI Prompt Export feature.'
+                    : 'Bạn cần đăng nhập để sử dụng tính năng xuất dữ liệu luận giải cho AI.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={login}
+                  style={{
+                    padding: '8px 20px',
+                    background: 'linear-gradient(135deg, #7c5cfc, #a78bfa)',
+                    border: 'none',
+                    borderRadius: 10,
+                    color: '#ffffff',
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(124,92,252,0.4)',
+                  }}
+                >
+                  🔑 {language === 'en' ? 'Log in now' : 'Đăng nhập ngay'}
                 </button>
               </div>
-              <pre className="manual-copy-text">{aiPromptText}</pre>
-            </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#e5c158', letterSpacing: '0.5px' }}>
+                    {language === 'en' ? 'FULL AI PROMPT (RECOMMENDED)' : 'PROMPT AI ĐẦY ĐỦ (KHUYÊN DÙNG)'}
+                  </span>
+                  <button
+                    className="manual-copy-btn primary"
+                    onClick={handleCopyPrompt}
+                    style={{ position: 'static' }}
+                  >
+                    {copyPromptDone
+                      ? (language === 'en' ? '✓ Copied!' : '✓ Đã sao chép')
+                      : (language === 'en' ? '📋 Copy Prompt' : '📋 Sao chép Prompt')}
+                  </button>
+                </div>
 
-            {/* Simple list */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {language === 'en' ? 'Short card list only' : 'Danh sách ngắn (chỉ tên lá)'}
-                </span>
-                <button
-                  className="reset-weights-btn"
-                  style={{ padding: '5px 14px', fontSize: 12 }}
-                  onClick={handleCopySimple}
-                >
-                  {copyDone
-                    ? (language === 'en' ? '✓ Copied!' : '✓ Đã sao chép!')
-                    : (language === 'en' ? '📋 Copy List' : '📋 Sao chép danh sách')}
-                </button>
-              </div>
-            </div>
-          </div>
+                <pre className="manual-copy-text">{aiPromptText}</pre>
 
-          <AiInterpretationPanel
-            question={question}
-            drawnCards={drawnCards}
-            spreadName={language === 'en' ? 'Manual Selection' : 'Tự Chọn Lá Bài'}
-            spreadPositions={drawnCards.map((_, i) => language === 'en' ? `Card ${i + 1}` : `Lá thứ ${i + 1}`)}
-            interpretationContext={activeCtx}
-            interpretationSummary=""
-            getCardMeaning={getCardMeaning}
-          />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.5px' }}>
+                    {language === 'en' ? 'SHORT CARDS SUMMARY ONLY' : 'CHỈ TÓM TẮT CÁC LÁ BÀI'}
+                  </span>
+                  <button
+                    className="manual-copy-btn"
+                    onClick={handleCopyText}
+                    style={{ position: 'static' }}
+                  >
+                    {copyDone
+                      ? (language === 'en' ? '✓ Copied!' : '✓ Đã sao chép')
+                      : (language === 'en' ? '📋 Copy Summary' : '📋 Sao chép Tóm Tắt')}
+                  </button>
+                </div>
 
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <button className="reset-weights-btn" style={{ padding: '10px 28px', borderRadius: 20 }} onClick={handleReset}>
-              {language === 'en' ? '🔄 New Reading' : '🔄 Trải Bài Lại'}
-            </button>
+                <pre className="manual-copy-text">{summaryText}</pre>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* ─── Card Detail Modal ─── */}
+      {/* Card Detail Modal */}
       {selectedModalCard && (
         <div className="card-modal-overlay" onClick={() => setSelectedModalCard(null)}>
-          <div className="card-modal-content" onClick={e => e.stopPropagation()}>
+          <div className="card-modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setSelectedModalCard(null)}>×</button>
 
             <div className="modal-left-col">
-              <div className="modal-card-wrapper">
-                <img
-                  src={import.meta.env.BASE_URL + selectedModalCard.image.replace(/^\//, '')}
-                  alt={selectedModalCard.name}
-                  className={`modal-card-image ${selectedModalCard.orientation === 'reversed' ? 'reversed' : ''}`}
-                />
-              </div>
+              <img
+                src={`${import.meta.env.BASE_URL}${selectedModalCard.image.replace(/^\//, '')}`}
+                alt={selectedModalCard.name}
+                className={`modal-card-img${selectedModalCard.orientation === 'reversed' ? ' reversed' : ''}`}
+              />
             </div>
 
             <div className="modal-right-col">
-              <span className="modal-type">
-                {selectedModalCard.arcana} Arcana {selectedModalCard.suit ? `• ${selectedModalCard.suit}` : ''}
-              </span>
               <h2 className="modal-title">{selectedModalCard.name}</h2>
 
               <div className="modal-section">
@@ -515,6 +439,14 @@ export default function ManualPickMode({ tarotCards }) {
           </div>
         </div>
       )}
+
+      {/* Weight Config Modal Popup */}
+      <WeightSettingsModal
+        isOpen={showWeightModal}
+        onClose={() => setShowWeightModal(false)}
+        weights={weights}
+        setWeights={setWeights}
+      />
     </div>
   );
 }

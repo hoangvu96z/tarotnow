@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 /**
  * PromptExporter Component
@@ -15,6 +16,7 @@ export default function PromptExporter({
   getCardMeaning
 }) {
   const { t, language } = useLanguage();
+  const { isAuthenticated, login } = useAuth();
   const [activeTab, setActiveTab] = useState('prompt'); // 'prompt' | 'list'
   const [copied, setCopied] = useState(false);
   const [promptTemplate, setPromptTemplate] = useState('standard'); // 'standard' | 'love' | 'career'
@@ -97,93 +99,149 @@ export default function PromptExporter({
       }
     }
 
-    const sysRole = t('export.prompt_system', 'Tôi muốn bạn đóng vai một nhà giải nghĩa Tarot chuyên nghiệp, am hiểu sâu sắc về biểu tượng học Rider-Waite-Smith.');
-    const qLabel = t('export.prompt_question', 'CÂU HỎI CỦA TÔI:');
-    const dLabel = t('export.prompt_details', 'CHI TIẾT TRẢI BÀI ĐÃ RÚT:');
-    const sLabel = t('export.prompt_summary', 'TÓM TẮT LUẬN GIẢI CƠ BẢN (NỀN TẢNG SƠ BỘ):');
-    const gLabel = t('export.prompt_guide', 'HƯỚNG DẪN GIẢI NGHĨA CHO AI:');
-    const rLabel = t('export.prompt_req', 'Yêu cầu định dạng phản hồi:');
-    const rBullets = t('export.prompt_req_bullets', '- Sử dụng tiếng Việt, viết trôi chảy, sâu sắc và khách quan.\n- Có tiêu đề rõ ràng cho từng phần.\n- Kết luận bằng một thông điệp đúc kết hoặc hành động cụ thể tôi nên làm.');
+    let roleText = isEn
+      ? "Act as an expert Tarot Reader and intuitive mentor. Provide a deep, insightful, and compassionate interpretation."
+      : "Hãy đóng vai một Reader Tarot chuyên nghiệp và giàu kinh nghiệm. Hãy đưa ra luận giải sâu sắc, thấu đáo và đầy tính định hướng.";
+      
+    if (promptTemplate === 'love') {
+      roleText = isEn
+        ? "Act as a relationship counselor and Tarot Reader specializing in love dynamics, emotional connections, and romantic growth."
+        : "Hãy đóng vai một chuyên gia tư vấn tình cảm & Reader Tarot chuyên sâu về tình yêu, cảm xúc và các mối quan hệ.";
+    } else if (promptTemplate === 'career') {
+      roleText = isEn
+        ? "Act as a strategic career coach and Tarot Reader focusing on practical advice, work dynamics, financial outlook, and professional growth."
+        : "Hãy đóng vai một chuyên gia định hướng sự nghiệp & Reader Tarot chuyên sâu về công việc, tài chính và phát triển bản thân.";
+    }
 
-    return `${sysRole}\n\n${qLabel}\n"${question}"\n\n${dLabel}\n${cardsSection}\n${interpretationSummary ? `\n${sLabel}\n${interpretationSummary}\n` : ''}\n${gLabel}\n${instruction}\n\n${rLabel}\n${rBullets}`;
+    return `${roleText}\n\n${formatCardsList()}\n\n${isEn ? 'Please provide a detailed reading based on the information above.' : 'Vui lòng đưa ra lời luận giải chi tiết dựa trên thông tin trên.'}`;
   };
 
-  const handleCopy = async () => {
+  const handleCopy = () => {
     const textToCopy = activeTab === 'prompt' ? getPromptText() : formatCardsList();
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Copy failed: ', err);
-    }
+    navigator.clipboard.writeText(textToCopy);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   };
 
   return (
-    <div className="export-container glass-panel">
-      <div className="export-header">
-        <h3 className="export-title">{t('export.title', 'Xuất dữ liệu luận giải cho AI')}</h3>
-        <div className="tab-buttons">
-          <button 
-            className={`tab-btn ${activeTab === 'prompt' ? 'active' : ''}`}
-            onClick={() => setActiveTab('prompt')}
-          >
-            {t('export.tab_prompt', 'Prompt Mẫu cho AI')}
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'list' ? 'active' : ''}`}
-            onClick={() => setActiveTab('list')}
-          >
-            {t('export.tab_list', 'Danh sách gọn')}
-          </button>
-        </div>
-      </div>
-
-      {activeTab === 'prompt' && (
-        <div className="prompt-template-selector">
-          <label className="template-label">{t('export.select_type', 'Chọn kiểu luận giải:')}</label>
-          <div className="template-options">
+    <div className="glass-panel prompt-exporter-panel" style={{ marginTop: 24 }}>
+      <div className="card-header-flex">
+        <h3 className="settings-title">{t('export.title', 'Xuất dữ liệu luận giải cho AI')}</h3>
+        {isAuthenticated && (
+          <div className="tab-switcher">
             <button 
-              className={`template-opt-btn ${promptTemplate === 'standard' ? 'selected' : ''}`}
-              onClick={() => setPromptTemplate('standard')}
+              className={`tab-btn ${activeTab === 'prompt' ? 'active' : ''}`}
+              onClick={() => setActiveTab('prompt')}
             >
-              {t('export.type_general', 'Tổng quan')}
+              {t('export.tab_prompt', 'Prompt Mẫu cho AI')}
             </button>
             <button 
-              className={`template-opt-btn ${promptTemplate === 'love' ? 'selected' : ''}`}
-              onClick={() => setPromptTemplate('love')}
+              className={`tab-btn ${activeTab === 'list' ? 'active' : ''}`}
+              onClick={() => setActiveTab('list')}
             >
-              {t('export.type_love', 'Tình yêu')}
-            </button>
-            <button 
-              className={`template-opt-btn ${promptTemplate === 'career' ? 'selected' : ''}`}
-              onClick={() => setPromptTemplate('career')}
-            >
-              {t('export.type_career', 'Công việc')}
+              {t('export.tab_list', 'Danh sách gọn')}
             </button>
           </div>
-        </div>
-      )}
-
-      <div className="output-preview-box">
-        <pre className="output-text">
-          {activeTab === 'prompt' ? getPromptText() : formatCardsList()}
-        </pre>
+        )}
       </div>
 
-      <div className="export-actions">
-        <button 
-          className={`copy-main-btn ${copied ? 'success' : ''}`}
-          onClick={handleCopy}
+      {!isAuthenticated ? (
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px dashed rgba(229, 193, 88, 0.25)',
+            borderRadius: 12,
+            padding: '24px 16px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 12,
+            marginTop: 16,
+          }}
         >
-          {copied ? t('export.copied_btn', '✓ Đã Copy Thành Công!') : t('export.copy_btn', 'Sao chép kết quả')}
-        </button>
-        <span className="export-hint">
-          {activeTab === 'prompt' 
-            ? t('export.hint_prompt', 'Copy prompt này dán thẳng vào ChatGPT/Claude/Perplexity để có luận giải chuẩn nhất!')
-            : t('export.hint_list', 'Copy danh sách ngắn gọn các lá bài đã rút.')}
-        </span>
-      </div>
+          <span style={{ fontSize: '1.8rem' }}>🔒</span>
+          <p
+            style={{
+              margin: 0,
+              fontSize: '0.88rem',
+              color: 'rgba(255, 255, 255, 0.75)',
+              lineHeight: 1.5,
+              maxWidth: 640,
+            }}
+          >
+            {t(
+              'export.guest_notice',
+              'Bạn cần đăng nhập để sử dụng tính năng xuất dữ liệu luận giải cho AI.'
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={login}
+            style={{
+              padding: '8px 20px',
+              background: 'linear-gradient(135deg, #7c5cfc, #a78bfa)',
+              border: 'none',
+              borderRadius: 10,
+              color: '#ffffff',
+              fontSize: '0.85rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 4px 14px rgba(124,92,252,0.4)',
+            }}
+          >
+            🔑 {t('auth.login_now', 'Đăng nhập ngay')}
+          </button>
+        </div>
+      ) : (
+        <>
+          {activeTab === 'prompt' && (
+            <div className="prompt-template-selector" style={{ marginTop: 16 }}>
+              <label className="template-label">{t('export.select_type', 'Chọn kiểu luận giải:')}</label>
+              <div className="template-options">
+                <button 
+                  className={`template-opt-btn ${promptTemplate === 'standard' ? 'selected' : ''}`}
+                  onClick={() => setPromptTemplate('standard')}
+                >
+                  {t('export.type_general', 'Tổng quan')}
+                </button>
+                <button 
+                  className={`template-opt-btn ${promptTemplate === 'love' ? 'selected' : ''}`}
+                  onClick={() => setPromptTemplate('love')}
+                >
+                  {t('export.type_love', 'Tình yêu')}
+                </button>
+                <button 
+                  className={`template-opt-btn ${promptTemplate === 'career' ? 'selected' : ''}`}
+                  onClick={() => setPromptTemplate('career')}
+                >
+                  {t('export.type_career', 'Công việc')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="output-preview-box">
+            <pre className="output-text">
+              {activeTab === 'prompt' ? getPromptText() : formatCardsList()}
+            </pre>
+          </div>
+
+          <div className="export-actions">
+            <button 
+              className={`copy-main-btn ${copied ? 'success' : ''}`}
+              onClick={handleCopy}
+            >
+              {copied ? t('export.copied_btn', '✓ Đã Copy Thành Công!') : t('export.copy_btn', 'Sao chép kết quả')}
+            </button>
+            <span className="export-hint">
+              {activeTab === 'prompt' 
+                ? t('export.hint_prompt', 'Copy prompt này dán thẳng vào ChatGPT/Claude/Perplexity để có luận giải chuẩn nhất!')
+                : t('export.hint_list', 'Copy danh sách ngắn gọn các lá bài đã rút.')}
+            </span>
+          </div>
+        </>
+      )}
     </div>
   );
 }
