@@ -16,6 +16,7 @@ import PromptExporter from './components/PromptExporter';
 import ManualPickMode from './components/ManualPickMode';
 import AiInterpretationPanel from './components/AiInterpretationPanel';
 import AppHeader from './components/AppHeader.jsx';
+import HistoryManagementModal from './components/HistoryManagementModal.jsx';
 import { useLanguage } from './context/LanguageContext';
 
 export default function App() {
@@ -45,15 +46,17 @@ export default function App() {
   const [activeSpread, setActiveSpread] = useState('past-present-future');
   const [isDrawing, setIsDrawing] = useState(false);
   const [selectedModalCard, setSelectedModalCard] = useState(null);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
 
   // ─── Auth + Readings API ──────────────────────────────────────────────────
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login } = useAuth();
   const {
     history,
     setHistory,
     historyLoaded,
     loadHistory,
     saveReading,
+    deleteMultipleReadings,
     clearHistory,
   } = useReadingsApi(isAuthenticated);
 
@@ -723,26 +726,86 @@ ${summaryObj.advice}
 
           {/* Session History */}
           <div className="glass-panel history-panel">
-            <div className="card-header-flex" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '10px', marginBottom: '14px' }}>
-              <h3 className="settings-title">{t('history.title', 'Lịch sử phiên này')}</h3>
-              {history.length > 0 && (
+            <div className="card-header-flex" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '10px', marginBottom: '14px', alignItems: 'center' }}>
+              <h3 className="settings-title" style={{ margin: 0 }}>
+                {t('history.title', 'Lịch sử trải bài')}
+                {isAuthenticated && history.length > 0 && ` (${history.length})`}
+              </h3>
+              {isAuthenticated && history.length > 0 && (
                 <button
                   type="button"
-                  className="reset-weights-btn"
-                  onClick={handleClearHistory}
+                  onClick={() => setIsManageModalOpen(true)}
+                  style={{
+                    background: 'rgba(229, 193, 88, 0.1)',
+                    border: '1px solid rgba(229, 193, 88, 0.3)',
+                    borderRadius: 6,
+                    color: '#e5c158',
+                    padding: '4px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
                 >
-                  {t('history.clear_btn', 'Xóa lịch sử')}
+                  ⚙️ {t('history.manage_btn', 'Quản lý lịch sử')}
                 </button>
               )}
             </div>
 
-            {history.length === 0 ? (
+            {!isAuthenticated ? (
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px dashed rgba(229, 193, 88, 0.25)',
+                  borderRadius: 10,
+                  padding: '16px 14px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <span style={{ fontSize: '1.5rem' }}>🔒</span>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.85rem',
+                    color: 'rgba(255, 255, 255, 0.65)',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {t(
+                    'history.guest_notice',
+                    'Bạn cần phải đăng nhập để sử dụng tính năng lưu và quản lý lịch sử trải bài.'
+                  )}
+                </p>
+                <button
+                  onClick={login}
+                  style={{
+                    padding: '6px 16px',
+                    background: 'linear-gradient(135deg, #7c5cfc, #a78bfa)',
+                    border: 'none',
+                    borderRadius: 8,
+                    color: '#ffffff',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(124,92,252,0.3)',
+                  }}
+                >
+                  🔑 {t('auth.login_now', 'Đăng nhập ngay')}
+                </button>
+              </div>
+            ) : history.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', margin: '20px 0' }}>
                 {t('history.empty', 'Chưa có trải bài nào được ghi lại.')}
               </p>
             ) : (
               <div className="history-list">
-                {history.map((item) => {
+                {history.slice(0, 5).map((item) => {
                   const histSpreadName = item.spreadId 
                     ? t('spread.name.' + item.spreadId, item.spreadName) 
                     : (item.spreadName === 'Tùy chỉnh' || item.spreadName === 'Custom' ? t('history.custom', 'Tùy chỉnh') : item.spreadName);
@@ -770,9 +833,40 @@ ${summaryObj.advice}
                     </div>
                   );
                 })}
+
+                {history.length > 5 && (
+                  <button
+                    onClick={() => setIsManageModalOpen(true)}
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      border: '1px dashed rgba(229, 193, 88, 0.3)',
+                      borderRadius: 8,
+                      padding: '8px',
+                      color: '#e5c158',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      marginTop: 6,
+                    }}
+                  >
+                    {t('history.view_more', `Xem tất cả ${history.length} lần trải bài ➔`)}
+                  </button>
+                )}
               </div>
             )}
           </div>
+
+          {/* History Management Modal */}
+          <HistoryManagementModal
+            isOpen={isManageModalOpen}
+            onClose={() => setIsManageModalOpen(false)}
+            history={history}
+            tarotCards={tarotCards}
+            onDeleteMultiple={deleteMultipleReadings}
+            onClearAll={clearHistory}
+          />
 
         </section>
       </main>

@@ -20,12 +20,7 @@ export function useReadingsApi(isAuthenticated) {
   // ─── Load lịch sử ──────────────────────────────────────────────────────────
   const loadHistory = useCallback(async () => {
     if (!isAuthenticated) {
-      try {
-        const saved = localStorage.getItem('tarot_draw_history');
-        setHistory(saved ? JSON.parse(saved) : []);
-      } catch {
-        setHistory([]);
-      }
+      setHistory([]);
       setHistoryLoaded(true);
       return;
     }
@@ -57,18 +52,9 @@ export function useReadingsApi(isAuthenticated) {
     }
   }, [isAuthenticated]);
 
-  // ─── Lưu 1 reading mới ─────────────────────────────────────────────────────
+  // ─── Lưu 1 reading mới (Chỉ lưu khi đã đăng nhập) ──────────────────────────
   const saveReading = useCallback(async (newEntry) => {
-    if (!newEntry) return;
-
-    if (!isAuthenticated) {
-      setHistory((prev) => {
-        const updated = [newEntry, ...prev].slice(0, 20);
-        localStorage.setItem('tarot_draw_history', JSON.stringify(updated));
-        return updated;
-      });
-      return;
-    }
+    if (!newEntry || !isAuthenticated) return;
 
     try {
       const res = await fetch(`${SSO_BASE}/readings`, {
@@ -107,13 +93,30 @@ export function useReadingsApi(isAuthenticated) {
         console.error('deleteReading error:', err);
       }
     }
-    setHistory((prev) => {
-      const updated = prev.filter((h) => h.id !== item.id);
-      if (!isAuthenticated) {
-        localStorage.setItem('tarot_draw_history', JSON.stringify(updated));
-      }
-      return updated;
-    });
+    setHistory((prev) => prev.filter((h) => h.id !== item.id));
+  }, [isAuthenticated]);
+
+  // ─── Xoá nhiều readings ───────────────────────────────────────────────────
+  const deleteMultipleReadings = useCallback(async (itemsToDelete) => {
+    if (!itemsToDelete || itemsToDelete.length === 0) return;
+
+    const idsToDelete = new Set(itemsToDelete.map((i) => i.id));
+
+    if (isAuthenticated) {
+      await Promise.allSettled(
+        itemsToDelete.map((item) => {
+          const remoteId = item._remoteId || item.id;
+          if (!remoteId) return Promise.resolve();
+          return fetch(`${SSO_BASE}/readings/${remoteId}`, {
+            method: 'DELETE',
+            headers: authHeaders(),
+            credentials: 'include',
+          });
+        })
+      );
+    }
+
+    setHistory((prev) => prev.filter((h) => !idsToDelete.has(h.id)));
   }, [isAuthenticated]);
 
   // ─── Xoá toàn bộ ───────────────────────────────────────────────────────────
@@ -128,8 +131,6 @@ export function useReadingsApi(isAuthenticated) {
       } catch (err) {
         console.error('clearHistory error:', err);
       }
-    } else {
-      localStorage.removeItem('tarot_draw_history');
     }
     setHistory([]);
   }, [isAuthenticated]);
@@ -141,6 +142,7 @@ export function useReadingsApi(isAuthenticated) {
     loadHistory,
     saveReading,
     deleteReading,
+    deleteMultipleReadings,
     clearHistory,
   };
 }

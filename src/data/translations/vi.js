@@ -114,7 +114,7 @@ export const vi = {
   'spread.pos.five-relationship.4': 'Xu hướng tương lai',
 
   // History
-  'history.title': 'Lịch sử phiên này',
+  'history.title': 'Lịch sử rút bài',
   'history.clear_btn': 'Xóa lịch sử',
   'history.empty': 'Chưa có trải bài nào được ghi lại.',
   'history.custom': 'Tùy chỉnh',
