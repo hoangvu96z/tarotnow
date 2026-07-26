@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { encryptData, decryptData } from '../utils/cryptoUtils';
 
 const SSO_BASE = import.meta.env.VITE_SSO_URL || '';
 const APP = 'tarot';
@@ -17,6 +18,36 @@ export function useReadingsApi(isAuthenticated) {
   const [history, setHistory] = useState([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
 
+  // Helper giải mã đối tượng reading khi tải về từ server
+  const decryptReadingObject = async (r) => {
+    let question = r.question;
+    if (question && typeof question === 'string' && question.startsWith('enc_v1::')) {
+      question = await decryptData(question);
+    }
+
+    let dataObj = r.data || {};
+    if (dataObj.question && typeof dataObj.question === 'string' && dataObj.question.startsWith('enc_v1::')) {
+      dataObj = { ...dataObj, question: await decryptData(dataObj.question) };
+    }
+    if (dataObj.aiConversation) {
+      if (typeof dataObj.aiConversation === 'string' && dataObj.aiConversation.startsWith('enc_v1::')) {
+        const decryptedAi = await decryptData(dataObj.aiConversation);
+        dataObj = { ...dataObj, aiConversation: decryptedAi };
+      }
+    }
+
+    return {
+      id: r.id,
+      timestamp: r.createdAt,
+      question: question || '',
+      spread: r.type,
+      title: r.title,
+      cards: dataObj.cards || [],
+      data: dataObj,
+      _remoteId: r.id,
+    };
+  };
+
   // ─── Load lịch sử ──────────────────────────────────────────────────────────
   const loadHistory = useCallback(async () => {
     if (!isAuthenticated) {
@@ -33,16 +64,7 @@ export function useReadingsApi(isAuthenticated) {
       if (!res.ok) throw new Error('Failed to load readings');
       const data = await res.json();
 
-      const mapped = (data.readings || []).map((r) => ({
-        id: r.id,
-        timestamp: r.createdAt,
-        question: r.question || '',
-        spread: r.type,
-        title: r.title,
-        cards: r.data?.cards || [],
-        data: r.data,
-        _remoteId: r.id,
-      }));
+      const mapped = await Promise.all((data.readings || []).map(decryptReadingObject));
       setHistory(mapped);
     } catch (err) {
       console.error('loadHistory error:', err);
@@ -52,9 +74,21 @@ export function useReadingsApi(isAuthenticated) {
     }
   }, [isAuthenticated]);
 
-  // ─── Lưu 1 reading mới (Chỉ lưu khi đã đăng nhập) ──────────────────────────
+  // ─── Lưu 1 reading mới với mã hóa AES-GCM ──────────────────────────────────
   const saveReading = useCallback(async (newEntry) => {
     if (!newEntry || !isAuthenticated) return null;
+
+    const plainQuestion = newEntry.question || null;
+    const encryptedQuestion = plainQuestion ? await encryptData(plainQuestion) : null;
+
+    const dataToSave = {
+      ...newEntry,
+      question: encryptedQuestion,
+    };
+
+    if (newEntry.aiConversation) {
+      dataToSave.aiConversation = await encryptData(newEntry.aiConversation);
+    }
 
     try {
       const res = await fetch(`${SSO_BASE}/readings`, {
@@ -64,9 +98,9 @@ export function useReadingsApi(isAuthenticated) {
         body: JSON.stringify({
           app: APP,
           type: newEntry.spread || 'custom',
-          question: newEntry.question || null,
+          question: encryptedQuestion,
           title: newEntry.title || `Trải bài ${newEntry.spread || ''}`,
-          data: newEntry,
+          data: dataToSave,
         }),
       });
       if (!res.ok) throw new Error('Failed to save reading');
@@ -137,15 +171,21 @@ export function useReadingsApi(isAuthenticated) {
     setHistory([]);
   }, [isAuthenticated]);
 
-  // ─── Cập nhật data của 1 reading (dùng để lưu AI conversation) ─────────────
+  // ─── Cập nhật data của 1 reading với mã hóa AI conversation ─────────────
   const updateReadingData = useCallback(async (readingId, partialData) => {
     if (!isAuthenticated || !readingId) return;
+
+    const dataToPatch = { ...partialData };
+    if (partialData.aiConversation) {
+      dataToPatch.aiConversation = await encryptData(partialData.aiConversation);
+    }
+
     try {
       const res = await fetch(`${SSO_BASE}/readings/${readingId}`, {
         method: 'PATCH',
         headers: { ...authHeaders(), 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ data: partialData }),
+        body: JSON.stringify({ data: dataToPatch }),
       });
       if (!res.ok) throw new Error('Failed to update reading data');
       const responseData = await res.json();
