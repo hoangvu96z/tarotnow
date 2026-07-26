@@ -264,9 +264,10 @@ export default function AiInterpretationPanel({
     setStatusText(isEn ? 'Connecting to AI Server...' : 'Đang kết nối đến server AI...');
 
     try {
-      const sysPrompt = `You are a professional Tarot reader, highly knowledgeable in Rider-Waite-Smith symbolism, Jungian archetypes, and holistic life guidance.
-Please interpret the drawn cards deeply, empathetically, and constructively. Help the user reflect on their situations instead of making superstitious predictions.
-Always respond in Vietnamese (unless English is explicitly requested, but default to Vietnamese).`;
+      const sysPrompt = isEn
+        ? `You are a professional Tarot reader, highly knowledgeable in Rider-Waite-Smith symbolism, Jungian archetypes, and holistic life guidance. Please interpret the drawn cards deeply, empathetically, and constructively. Help the user reflect on their situations instead of making superstitious predictions. Always respond in English.`
+        : `Bạn là một nhà giải nghĩa Tarot chuyên nghiệp, am hiểu sâu sắc về biểu tượng học Rider-Waite-Smith, các hình mẫu tâm lý học Jung và hướng dẫn cuộc sống toàn diện. Hãy giải nghĩa các lá bài đã rút một cách sâu sắc, thấu cảm và mang tính xây dựng. Giúp người dùng suy ngẫm về hoàn cảnh thay vì đưa ra các phán đoán mang tính bói toán mê tín. Luôn trả lời bằng tiếng Việt.`;
+
 
       const userPrompt = getPromptText();
 
@@ -405,20 +406,18 @@ Always respond in Vietnamese (unless English is explicitly requested, but defaul
     setCurrentFollowUpAnswer('');
 
     try {
-      const sysPrompt = `Bạn là một chuyên gia Tarot chuyên nghiệp, am hiểu sâu sắc về biểu tượng học Rider-Waite-Smith.
-Người dùng đang hỏi thêm một câu hỏi cụ thể dựa trên trải bài Tarot và luận giải đã có trước đó.
-Yêu cầu quan trọng khi trả lời câu hỏi thêm:
-1. Trả lời NGẮN GỌN, súc tích, đi thẳng vào trọng tâm câu hỏi. KHÔNG dông dài, KHÔNG lặp lại phần giới thiệu hay tên các lá bài đã biết.
-2. Phân tích ngắn gọn dựa trên các lá bài đã rút và luận giải trước đó.
-3. Đưa ra kết luận hoặc lời khuyên cụ thể, ngắn gọn, dễ hiểu. Luôn trả lời bằng tiếng Việt.`;
+      const sysPrompt = isEn
+        ? `You are a professional Tarot reader, highly knowledgeable in Rider-Waite-Smith symbolism. The user is asking a follow-up question based on their drawn Tarot spread and previous interpretation.\nRequirements:\n1. Answer CONCISELY and directly address the user's question. Do NOT repeat card names or introductory fluff.\n2. Briefly analyze based on the drawn cards and previous interpretation.\n3. Conclude with clear, practical advice. Always respond in English.`
+        : `Bạn là một chuyên gia Tarot chuyên nghiệp, am hiểu sâu sắc về biểu tượng học Rider-Waite-Smith. Người dùng đang hỏi thêm một câu hỏi cụ thể dựa trên trải bài Tarot và luận giải đã có trước đó.\nYêu cầu quan trọng khi trả lời câu hỏi thêm:\n1. Trả lời NGẮN GỌN, súc tích, đi thẳng vào trọng tâm câu hỏi. KHÔNG dông dài, KHÔNG lặp lại phần giới thiệu hay tên các lá bài đã biết.\n2. Phân tích ngắn gọn dựa trên các lá bài đã rút và luận giải trước đó.\n3. Đưa ra kết luận hoặc lời khuyên cụ thể, ngắn gọn, dễ hiểu. Luôn trả lời bằng tiếng Việt.`;
 
       const contextPrompt = getPlainContext();
 
       const messages = [
         { role: 'system', content: sysPrompt },
-        { role: 'user', content: `Trải bài Tarot của tôi:\n${contextPrompt}` },
+        { role: 'user', content: isEn ? `My Tarot spread:\n${contextPrompt}` : `Trải bài Tarot của tôi:\n${contextPrompt}` },
         { role: 'assistant', content: interpretation }
       ];
+
 
       followUps.forEach(item => {
         messages.push({ role: 'user', content: item.question });

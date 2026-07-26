@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext.jsx';
 
 const SSO_BASE = import.meta.env.VITE_SSO_URL || '';
 
 const DEFAULT_PLANS = [
   {
     name: 'free',
-    label: 'Miễn Phí',
+    labelVi: 'Miễn Phí',
+    labelEn: 'Free',
     emoji: '⚡',
     price: 0,
     dailyLimit: 1,
@@ -16,7 +18,8 @@ const DEFAULT_PLANS = [
   },
   {
     name: 'lite',
-    label: 'Lite',
+    labelVi: 'Lite',
+    labelEn: 'Lite',
     emoji: '🌟',
     price: 49000,
     dailyLimit: 5,
@@ -27,7 +30,8 @@ const DEFAULT_PLANS = [
   },
   {
     name: 'premium',
-    label: 'Premium',
+    labelVi: 'Premium',
+    labelEn: 'Premium',
     emoji: '💎',
     price: 99000,
     dailyLimit: -1,
@@ -46,6 +50,9 @@ export default function PricingModal({
   onRequestBonus,
   onApplyCoupon,
 }) {
+  const { t, language } = useLanguage();
+  const isEn = language === 'en';
+
   const [couponCode, setCouponCode] = useState('');
   const [couponMsg, setCouponMsg] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
@@ -63,7 +70,7 @@ export default function PricingModal({
               return {
                 ...meta,
                 ...p,
-                label: p.label || meta.label || p.name,
+                label: isEn ? (meta.labelEn || p.label) : (p.label || meta.labelVi),
                 emoji: meta.emoji || '🔮',
                 color: meta.color || '#818cf8',
                 highlight: p.name === 'premium',
@@ -74,7 +81,7 @@ export default function PricingModal({
         })
         .catch((err) => console.error('Failed to load plans config:', err));
     }
-  }, [isOpen]);
+  }, [isOpen, isEn]);
 
   if (!isOpen) return null;
 
@@ -95,53 +102,61 @@ export default function PricingModal({
     if (result.ok) {
       onClose();
     } else {
-      alert(result.error || 'Không thể xin thêm câu');
+      alert(result.error || (isEn ? 'Failed to request bonus' : 'Không thể xin thêm câu'));
     }
   };
 
   const formatPrice = (price) => {
-    if (price === 0 || !price) return 'Miễn phí';
+    if (price === 0 || !price) return isEn ? 'Free' : 'Miễn phí';
     return `${Number(price).toLocaleString('vi-VN')}đ`;
   };
 
   const getFeatures = (plan) => {
-    const dailyText =
-      plan.dailyLimit === -1
-        ? 'Không giới hạn lượt/ngày'
-        : `${plan.dailyLimit} lượt hỏi AI mỗi ngày`;
-    const monthlyText =
-      plan.monthlyLimit === -1
-        ? 'Không giới hạn lượt/tháng'
-        : `Tối đa ${plan.monthlyLimit} lượt/tháng`;
+    const dailyText = isEn
+      ? (plan.dailyLimit === -1 ? 'Unlimited AI asks/day' : `${plan.dailyLimit} AI ask(s) per day`)
+      : (plan.dailyLimit === -1 ? 'Không giới hạn lượt/ngày' : `${plan.dailyLimit} lượt hỏi AI mỗi ngày`);
+
+    const monthlyText = isEn
+      ? (plan.monthlyLimit === -1 ? 'Unlimited asks/month' : `Max ${plan.monthlyLimit} asks/month`)
+      : (plan.monthlyLimit === -1 ? 'Không giới hạn lượt/tháng' : `Tối đa ${plan.monthlyLimit} lượt/tháng`);
 
     if (plan.name === 'free') {
       return [
         dailyText,
         monthlyText,
-        'Lưu lịch sử trải bài',
-        'Xem giải nghĩa cơ bản',
+        isEn ? 'Save reading history' : 'Lưu lịch sử trải bài',
+        isEn ? 'Basic Tarot interpretation' : 'Xem giải nghĩa cơ bản',
       ];
     }
     if (plan.name === 'lite') {
       return [
         dailyText,
         monthlyText,
-        'Lưu lịch sử không giới hạn',
-        'Giải nghĩa chi tiết hơn',
+        isEn ? 'Unlimited history saving' : 'Lưu lịch sử không giới hạn',
+        isEn ? 'In-depth AI analysis' : 'Giải nghĩa chi tiết hơn',
       ];
     }
     return [
       dailyText,
       monthlyText,
-      '✨ Hỏi thêm 5 câu AI cho mỗi trải bài',
-      'Phân tích AI sâu nhất',
-      'Ưu tiên hỗ trợ',
+      isEn ? '✨ 5 follow-up questions per reading' : '✨ Hỏi thêm 5 câu AI cho mỗi trải bài',
+      isEn ? 'Deepest AI Tarot insights' : 'Phân tích AI sâu nhất',
+      isEn ? 'Priority customer support' : 'Ưu tiên hỗ trợ',
     ];
   };
 
   const getNotIncluded = (plan) => {
-    if (plan.name === 'free') return ['Hỏi thêm 5 câu cho mỗi trải bài', 'Ưu tiên hỗ trợ'];
-    if (plan.name === 'lite') return ['Hỏi thêm 5 câu cho mỗi trải bài'];
+    if (plan.name === 'free') {
+      return [
+        isEn ? '5 follow-up questions per reading' : 'Hỏi thêm 5 câu cho mỗi trải bài',
+        isEn ? 'Priority support' : 'Ưu tiên hỗ trợ',
+      ];
+    }
+    if (plan.name === 'lite') {
+      return [
+        isEn ? '5 follow-up questions per reading' : 'Hỏi thêm 5 câu cho mỗi trải bài',
+      ];
+    }
     return [];
   };
 
@@ -172,11 +187,11 @@ export default function PricingModal({
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
           <div style={{ fontSize: '2.2rem', marginBottom: '6px' }}>🔮</div>
           <h2 style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>
-            Nâng Cấp Gói Luận Giải Tarot
+            {isEn ? 'Upgrade Your Tarot Plan' : 'Nâng Cấp Gói Luận Giải Tarot'}
           </h2>
           <p style={{ color: '#c4b5fd', fontSize: '0.9rem', marginTop: '8px' }}>
-            Bạn đã dùng hết lượt luận giải Tarot AI hôm nay.{' '}
-            {canBonus && <strong style={{ color: '#818cf8' }}>Hoặc dùng "Hỏi thêm 5 câu" ngay bây giờ!</strong>}
+            {isEn ? 'You have reached your daily Tarot AI quota limit.' : 'Bạn đã dùng hết lượt luận giải Tarot AI hôm nay.'}{' '}
+            {canBonus && <strong style={{ color: '#818cf8' }}>{isEn ? 'Or use "Ask 5 Follow-ups" now!' : 'Hoặc dùng "Hỏi thêm 5 câu" ngay bây giờ!'}</strong>}
           </p>
         </div>
 
@@ -189,7 +204,7 @@ export default function PricingModal({
             textAlign: 'center',
           }}>
             <div style={{ color: '#c4b5fd', fontSize: '0.85rem', marginBottom: '10px', fontWeight: 600 }}>
-              💎 Bạn đang dùng gói Premium — có thể hỏi thêm 5 câu cho trải bài này!
+              {isEn ? '💎 You are on Premium plan — ask 5 follow-up questions for this reading!' : '💎 Bạn đang dùng gói Premium — có thể hỏi thêm 5 câu cho trải bài này!'}
             </div>
             <button
               onClick={handleBonus}
@@ -203,7 +218,7 @@ export default function PricingModal({
                 boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
               }}
             >
-              {bonusLoading ? 'Đang xử lý...' : '✨ Hỏi thêm 5 câu ngay'}
+              {bonusLoading ? (isEn ? 'Processing...' : 'Đang xử lý...') : (isEn ? '✨ Ask 5 Questions Now' : '✨ Hỏi thêm 5 câu ngay')}
             </button>
           </div>
         )}
@@ -244,7 +259,7 @@ export default function PricingModal({
                       letterSpacing: '0.05em',
                     }}
                   >
-                    ĐỀ XUẤT
+                    {isEn ? 'RECOMMENDED' : 'ĐỀ XUẤT'}
                   </div>
                 )}
                 <div style={{ textAlign: 'center', marginBottom: '14px' }}>
@@ -255,7 +270,7 @@ export default function PricingModal({
                   <div style={{ color: plan.color, fontWeight: 800, fontSize: '1.3rem', marginTop: '4px' }}>
                     {formatPrice(plan.price)}
                     {plan.price > 0 && (
-                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>/tháng</span>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{isEn ? '/month' : '/tháng'}</span>
                     )}
                   </div>
                 </div>
@@ -295,7 +310,7 @@ export default function PricingModal({
 
                 {plan.name !== 'free' && plan.name !== currentPlan && (
                   <button
-                    onClick={() => alert('Liên hệ admin để nâng cấp gói!')}
+                    onClick={() => alert(isEn ? 'Please contact Admin to upgrade your plan!' : 'Liên hệ admin để nâng cấp gói!')}
                     style={{
                       width: '100%',
                       marginTop: '14px',
@@ -311,12 +326,12 @@ export default function PricingModal({
                       cursor: 'pointer',
                     }}
                   >
-                    Nâng cấp {plan.label}
+                    {isEn ? `Upgrade ${plan.label}` : `Nâng cấp ${plan.label}`}
                   </button>
                 )}
                 {plan.name === currentPlan && (
                   <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '0.78rem', color: '#64748b' }}>
-                    Gói hiện tại
+                    {isEn ? 'Current Plan' : 'Gói hiện tại'}
                   </div>
                 )}
               </div>
@@ -331,14 +346,14 @@ export default function PricingModal({
           borderRadius: '12px', padding: '16px',
         }}>
           <div style={{ color: '#c4b5fd', fontSize: '0.85rem', fontWeight: 600, marginBottom: '10px' }}>
-            🎟️ Có mã khuyến mãi? Nhập tại đây
+            {isEn ? '🎟️ Have a promo code? Enter here' : '🎟️ Có mã khuyến mãi? Nhập tại đây'}
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <input
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
               onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
-              placeholder="VD: TRIAL7, PREMIUM30..."
+              placeholder={isEn ? 'e.g. TRIAL7, PROMO50...' : 'VD: TRIAL7, PREMIUM30...'}
               style={{
                 flex: 1, background: 'rgba(255, 255, 255, 0.07)',
                 border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -358,7 +373,7 @@ export default function PricingModal({
                 opacity: couponLoading || !couponCode.trim() ? 0.6 : 1,
               }}
             >
-              {couponLoading ? '...' : 'Áp dụng'}
+              {couponLoading ? '...' : (isEn ? 'Apply' : 'Áp dụng')}
             </button>
           </div>
           {couponMsg && (
@@ -379,7 +394,7 @@ export default function PricingModal({
             fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600,
           }}
         >
-          Để sau — quay lại ngày mai
+          {isEn ? 'Maybe later — return tomorrow' : 'Để sau — quay lại ngày mai'}
         </button>
       </div>
     </div>
