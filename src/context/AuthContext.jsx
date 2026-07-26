@@ -62,16 +62,37 @@ export function AuthProvider({ children }) {
     // Lắng nghe sự thay đổi trạng thái SSO từ các tab khác
     const handleStorage = (e) => {
       if (e.key === 'vInfiSSO-state') {
+        try {
+          const payload = JSON.parse(e.newValue);
+          if (payload?.type === 'logout') {
+            // Tab khác đã logout → xóa local state, không gọi lại /sso/me
+            localStorage.removeItem('sso_token');
+            localStorage.setItem('sso_logged_out', '1');
+            setUser(null);
+            return;
+          }
+        } catch {}
         fetchUser();
       }
     };
 
+    // Khi tab lấy lại focus, kiểm tra lại session (nhưng không re-auth nếu đã logout)
+    const handleFocus = () => {
+      const loggedOut = localStorage.getItem('sso_logged_out');
+      if (loggedOut) {
+        localStorage.removeItem('sso_token');
+        setUser(null);
+        return;
+      }
+      fetchUser();
+    };
+
     window.addEventListener('storage', handleStorage);
-    window.addEventListener('focus', fetchUser);
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('focus', fetchUser);
+      window.removeEventListener('focus', handleFocus);
     };
   }, [fetchUser]);
 
@@ -88,7 +109,7 @@ export function AuthProvider({ children }) {
       const storedToken = localStorage.getItem('sso_token');
       const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
 
-      // Call SSO logout API to invalidate server-side session/cookie
+      // Call SSO logout API to invalidate server-side session/cookie (xóa ALL sessions của user)
       await fetch(`${SSO_BASE}/sso/logout`, {
         method: 'POST',
         headers,
@@ -99,6 +120,8 @@ export function AuthProvider({ children }) {
     } finally {
       // Always clear local state regardless of API result
       localStorage.removeItem('sso_token');
+      // Đặt flag để ngăn tự đăng nhập lại khi SSO page reload
+      localStorage.setItem('sso_logged_out', '1');
       localStorage.setItem('vInfiSSO-state', JSON.stringify({ type: 'logout', t: Date.now() }));
       setUser(null);
     }
