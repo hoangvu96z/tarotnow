@@ -202,11 +202,17 @@ export default function PricingModal({
         )}
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{ fontSize: '2.2rem', marginBottom: '6px' }}>🔮</div>
-          <h2 style={{ color: '#c4b5fd', fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>
-            {isEn ? 'Upgrade Your Tarot Plan' : 'Nâng Cấp Gói Luận Giải Tarot'}
+          <h2 style={{ color: '#f5d78e', fontSize: '1.5rem', fontWeight: 800, margin: 0, fontFamily: "'Cinzel', serif" }}>
+            {currentPlan === 'admin'
+              ? (isEn ? 'Admin Account' : 'Tài Khoản Admin')
+              : isOverride || currentPlan === 'premium'
+              ? (isEn ? 'Your Service Plan' : 'Gói Dịch Vụ Của Bạn')
+              : (isEn ? 'Upgrade Your Tarot Plan' : 'Nâng Cấp Gói Luận Giải Tarot')}
           </h2>
-          <p style={{ color: '#a78bfa', fontSize: '0.9rem', marginTop: '8px' }}>
-            {isEn ? 'Choose the best plan for deeper Tarot AI insights.' : 'Chọn gói phù hợp để trải nghiệm luận giải Tarot AI sâu sắc hơn.'}
+          <p style={{ color: '#d4b886', fontSize: '0.9rem', marginTop: '8px' }}>
+            {isOverride
+              ? (isEn ? 'You are currently using free full features granted by Admin.' : 'Bạn đang được Admin kích hoạt đặc quyền dùng miễn phí toàn bộ tính năng cao cấp!')
+              : (isEn ? 'Choose the best plan for deeper Tarot AI wisdom.' : 'Chọn gói phù hợp để trải nghiệm luận giải Tarot AI sâu sắc hơn.')}
           </p>
           {expiresAt && (
             <div style={{ color: '#a3a3a3', fontSize: '0.8rem', marginTop: '4px' }}>
@@ -222,12 +228,12 @@ export default function PricingModal({
             background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(16, 185, 129, 0.25))',
             border: '1px solid rgba(99, 102, 241, 0.5)',
             borderRadius: '14px', padding: '14px 18px', marginBottom: '20px',
-            textAlign: 'center', color: '#a5b4fc', fontSize: '0.88rem', fontWeight: 600,
+            textAlign: 'center', color: '#a5b4fc', fontSize: '0.88rem', fontWeight: 700,
             lineHeight: 1.5,
           }}>
             🎁 {isEn
-              ? 'Admin Special Offer: You are currently granted full access to trial features!'
-              : 'Đặc quyền trải nghiệm: Bạn đang được Admin mở tặng quyền sử dụng gói Lite/Premium!'}
+              ? 'Admin Special Privileges Active: You are using premium AI features 100% FREE without needing to purchase any plan!'
+              : '🎁 Đang bật Đặc quyền Admin: Bạn đang được dùng MIỄN PHÍ 100% toàn bộ tính năng cao cấp mà KHÔNG CẦN mua bất kỳ gói nào!'}
           </div>
         )}
 
@@ -249,24 +255,24 @@ export default function PricingModal({
         {/* Bonus button (Premium only) */}
         {canBonus && (
           <div style={{
-            background: 'linear-gradient(135deg, rgba(167, 139, 250, 0.25), rgba(139, 92, 246, 0.3))',
-            border: '1px solid rgba(167, 139, 250, 0.5)',
+            background: 'linear-gradient(135deg, rgba(184, 134, 11, 0.25), rgba(139, 69, 19, 0.3))',
+            border: '1px solid rgba(184, 134, 11, 0.5)',
             borderRadius: '14px', padding: '16px', marginBottom: '24px',
             textAlign: 'center',
           }}>
-            <div style={{ color: '#c4b5fd', fontSize: '0.85rem', marginBottom: '10px', fontWeight: 600 }}>
+            <div style={{ color: '#f5d78e', fontSize: '0.85rem', marginBottom: '10px', fontWeight: 600 }}>
               {isEn ? '💎 You are on Premium plan — ask 5 follow-up questions for this reading!' : '💎 Bạn đang dùng gói Premium — có thể hỏi thêm 5 câu cho trải bài này!'}
             </div>
             <button
               onClick={handleBonus}
               disabled={bonusLoading}
               style={{
-                background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+                background: 'linear-gradient(135deg, #b8860b, #d97706)',
                 color: '#fff', border: 'none', borderRadius: '10px',
                 padding: '10px 24px', fontSize: '0.9rem', fontWeight: 700,
                 cursor: bonusLoading ? 'not-allowed' : 'pointer',
                 opacity: bonusLoading ? 0.7 : 1,
-                boxShadow: '0 4px 14px rgba(139,92,246,0.4)',
+                boxShadow: '0 4px 14px rgba(184,134,11,0.4)',
               }}
             >
               {bonusLoading ? (isEn ? 'Processing...' : 'Đang xử lý...') : (isEn ? '✨ Ask 5 Questions Now' : '✨ Hỏi thêm 5 câu ngay')}
@@ -290,12 +296,12 @@ export default function PricingModal({
                 key={plan.name}
                 style={{
                   background: plan.highlight
-                    ? 'linear-gradient(145deg, rgba(167, 139, 250, 0.2), rgba(139, 92, 246, 0.25))'
+                    ? 'linear-gradient(145deg, rgba(184, 134, 11, 0.2), rgba(139, 69, 19, 0.25))'
                     : 'rgba(255, 255, 255, 0.03)',
                   border: isCurrent
-                    ? '2px solid #a78bfa'
+                    ? '2px solid #f5d78e'
                     : plan.highlight
-                    ? '1px solid rgba(167, 139, 250, 0.6)'
+                    ? '1px solid rgba(184, 134, 11, 0.6)'
                     : '1px solid rgba(255, 255, 255, 0.08)',
                   borderRadius: '16px',
                   padding: '20px',
@@ -310,7 +316,7 @@ export default function PricingModal({
                       position: 'absolute',
                       top: '-10px',
                       right: '16px',
-                      background: 'linear-gradient(135deg, #8b5cf6, #6d28d9)',
+                      background: 'linear-gradient(135deg, #b8860b, #d97706)',
                       color: '#fff',
                       fontSize: '0.65rem',
                       fontWeight: 800,
@@ -344,33 +350,35 @@ export default function PricingModal({
                 >
                   {features.map((f, i) => (
                     <li key={i} style={{ marginBottom: '8px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                      <span style={{ color: '#a78bfa' }}>✓</span>
+                      <span style={{ color: '#b8860b' }}>✓</span>
                       <span>{f}</span>
                     </li>
                   ))}
                 </ul>
 
                 <button
-                  disabled={isCurrent}
+                  disabled={isCurrent || isOverride || currentPlan === 'admin'}
                   onClick={() => alert(isEn ? 'Please contact Admin to upgrade your plan!' : 'Liên hệ admin để nâng cấp gói!')}
                   style={{
                     width: '100%',
                     padding: '10px',
                     borderRadius: '10px',
                     border: 'none',
-                    background: isCurrent
+                    background: (isCurrent || isOverride || currentPlan === 'admin')
                       ? 'rgba(255,255,255,0.1)'
                       : plan.highlight
-                      ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)'
+                      ? 'linear-gradient(135deg, #b8860b, #d97706)'
                       : 'rgba(255,255,255,0.12)',
-                    color: isCurrent ? '#a3a3a3' : '#fff',
+                    color: (isCurrent || isOverride || currentPlan === 'admin') ? '#a3a3a3' : '#fff',
                     fontWeight: 700,
                     fontSize: '0.85rem',
-                    cursor: isCurrent ? 'default' : 'pointer',
+                    cursor: (isCurrent || isOverride || currentPlan === 'admin') ? 'default' : 'pointer',
                   }}
                 >
                   {isCurrent
                     ? (isEn ? 'Current Plan' : 'Gói hiện tại')
+                    : isOverride || currentPlan === 'admin'
+                    ? (isEn ? 'Granted by Admin' : 'Được tặng bởi Admin')
                     : (isEn ? `Upgrade ${plan.label}` : `Nâng cấp ${plan.label}`)}
                 </button>
               </div>
