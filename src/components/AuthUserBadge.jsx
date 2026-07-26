@@ -111,12 +111,34 @@ export default function AuthUserBadge() {
         }}>
           <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: 6 }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#ffffff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {user.displayName || 'Người dùng'}
+              {user.displayName || 'Người dùng'} {user.role === 'admin' && <span style={{ fontSize: '0.65rem', background: '#7c5cfc', color: '#fff', padding: '2px 6px', borderRadius: 4, marginLeft: 4 }}>ADMIN</span>}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#888899', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user.email}
             </div>
           </div>
+
+          {user.role === 'admin' && (
+            <a
+              href="https://sso.vunph.click/ui/admin"
+              style={{
+                width: '100%', padding: '8px 12px',
+                background: 'rgba(124, 92, 252, 0.15)',
+                border: '1px solid rgba(124, 92, 252, 0.3)',
+                borderRadius: 8,
+                color: '#a48eff', fontSize: '0.85rem', fontWeight: 600,
+                cursor: 'pointer', fontFamily: 'inherit',
+                textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8,
+                textDecoration: 'none', marginBottom: 6,
+                transition: 'background 0.15s',
+                boxSizing: 'border-box',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(124, 92, 252, 0.3)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(124, 92, 252, 0.15)'}
+            >
+              🛡️ Trang Quản trị Admin
+            </a>
+          )}
 
           <button
             id="sso-logout-btn"
