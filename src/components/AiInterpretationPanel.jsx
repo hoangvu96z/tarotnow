@@ -874,28 +874,10 @@ Yêu cầu quan trọng khi trả lời câu hỏi thêm:
               </div>
             )}
           </div>
-
-          <button
-            onClick={handleInterpret}
-            className="reset-weights-btn"
-            style={{
-              fontSize: '12px',
-              alignSelf: 'center',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '4px',
-              color: 'var(--text-muted)',
-              cursor: 'pointer'
-            }}
-          >
-            🔄 {t('ai.re_interpret', 'Yêu cầu AI luận giải lại')}
-          </button>
         </div>
       )}
+
+
 
       {/* Styling spin anim */}
       <style>{`
