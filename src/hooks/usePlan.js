@@ -12,9 +12,40 @@ export function usePlan(isAuthenticated) {
   const [isLoadingQuota, setIsLoadingQuota] = useState(false);
 
   const fetchQuota = useCallback(async () => {
-    if (!isAuthenticated) { setQuota(null); return; }
     setIsLoadingQuota(true);
     try {
+      if (!isAuthenticated) {
+        // Fetch public config to see if Admin enabled Free override
+        const configRes = await fetch(`${SSO_BASE}/plans/config`);
+        if (configRes.ok) {
+          const configData = await configRes.json();
+          const freeP = configData.plans?.find(p => p.name === 'free');
+          if (freeP?.overrideFreeToPremium) {
+            setQuota({
+              plan: 'premium',
+              planLabel: 'Gói Premium (Đặc quyền Admin)',
+              remaining: 180,
+              canAsk: true,
+              canBonus: true,
+              isOverride: true,
+            });
+            return;
+          } else if (freeP?.overrideFreeToLite) {
+            setQuota({
+              plan: 'lite',
+              planLabel: 'Gói Lite (Đặc quyền Admin)',
+              remaining: 5,
+              canAsk: true,
+              canBonus: false,
+              isOverride: true,
+            });
+            return;
+          }
+        }
+        setQuota(null);
+        return;
+      }
+
       const res = await fetch(`${SSO_BASE}/plans/my-quota`, {
         headers: getAuthHeaders(),
         credentials: 'include',

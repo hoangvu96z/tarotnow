@@ -118,18 +118,23 @@ export default function App() {
     loadHistory();
   }, [loadHistory, isAuthenticated]);
 
-  // Auto-load quẻ/trải bài từ URL search param ?id=xxx khi history sẵn sàng
+  const hasAutoLoadedUrlRef = useRef(false);
+
+  // Auto-load quẻ/trải bài từ URL search param ?id=xxx khi history sẵn sàng (chỉ chạy 1 lần khi khởi tạo)
   useEffect(() => {
-    if (!history || history.length === 0) return;
+    if (!historyLoaded || !history || history.length === 0) return;
+    if (hasAutoLoadedUrlRef.current) return;
+
     const params = new URLSearchParams(window.location.search);
     const urlId = params.get('id');
     if (urlId) {
       const found = history.find(h => String(h.id) === String(urlId) || String(h._remoteId) === String(urlId));
       if (found) {
+        hasAutoLoadedUrlRef.current = true;
         handleSelectHistoryItem(found);
       }
     }
-  }, [history, handleSelectHistoryItem]);
+  }, [historyLoaded, history, handleSelectHistoryItem]);
 
   // Validation messages
   const [validationError, setValidationError] = useState('');
