@@ -243,7 +243,9 @@ export default function AiInterpretationPanel({
     const sLabel = t('export.prompt_summary', 'TÓM TẮT LUẬN GIẢI CƠ BẢN (NỀN TẢNG SƠ BỘ):');
     const gLabel = t('export.prompt_guide', 'HƯỚNG DẪN GIẢI NGHĨA CHO AI:');
     const rLabel = t('export.prompt_req', 'Yêu cầu định dạng phản hồi:');
-    const rBullets = t('export.prompt_req_bullets', '- Sử dụng tiếng Việt, viết trôi chảy, sâu sắc và khách quan.\n- Có tiêu đề rõ ràng cho từng phần.\n- Kết luận bằng một thông điệp đúc kết hoặc hành động cụ thể tôi nên làm.');
+    const rBullets = isEn
+      ? '- Use English, fluently, deeply and objectively.\n- Use clear section headers.\n- Conclude with actionable guidance.\n- At the end, provide exactly 3 concise suggested follow-up questions under:\n### 💡 Suggested Follow-up Questions:\n- 💡 Q1: [Question 1]\n- 💡 Q2: [Question 2]\n- 💡 Q3: [Question 3]'
+      : '- Sử dụng tiếng Việt, viết trôi chảy, sâu sắc và khách quan.\n- Có tiêu đề rõ ràng cho từng phần.\n- Kết luận bằng một thông điệp đúc kết hoặc hành động cụ thể tôi nên làm.\n- Cuối bài luận giải, đưa ra đúng 3 câu hỏi gợi ý đào sâu ngắn gọn cho người dùng ở phần:\n### 💡 Gợi ý 3 câu hỏi tiếp theo dành cho bạn:\n- 💡 Q1: [Câu hỏi 1]\n- 💡 Q2: [Câu hỏi 2]\n- 💡 Q3: [Câu hỏi 3]';
 
     return `${sysRole}\n\n${qLabel}\n"${question}"\n\n${dLabel}\n${cardsSection}\n${interpretationSummary ? `\n${sLabel}\n${interpretationSummary}\n` : ''}\n${gLabel}\n${instruction}\n\n${rLabel}\n${rBullets}`;
   };
@@ -388,10 +390,66 @@ export default function AiInterpretationPanel({
     return `Câu hỏi: "${question || 'Không có'}"\nTrải bài: ${spreadName || 'Custom'}\nCác lá bài:\n${cardsText}`;
   };
 
+  const extractAiSuggestedQuestions = (text, qTopic, isEnglish) => {
+    const list = [];
+    if (text) {
+      const matches = text.match(/(?:-|\*|\d+\.)?\s*💡\s*(?:Q\d+:?)?\s*([^\n\r]+)/gi);
+      if (matches && matches.length >= 1) {
+        matches.forEach(m => {
+          const cleaned = m
+            .replace(/(?:-|\*|\d+\.)?\s*💡\s*(?:Q\d+:?)?\s*/i, '')
+            .replace(/^[-*0-9.:\s]+/, '')
+            .trim();
+          if (cleaned && cleaned.length > 5 && !list.includes(cleaned)) {
+            list.push(cleaned);
+          }
+        });
+      }
+    }
+
+    if (list.length >= 3) return list.slice(0, 3);
+
+    const topic = (qTopic || '').toLowerCase();
+    if (topic.includes('tình') || topic.includes('yêu') || topic.includes('love') || topic.includes('relationship') || topic.includes('kết hôn')) {
+      return isEnglish ? [
+        'What are the core feelings and thoughts of the other person towards me?',
+        'What action should I take to strengthen or heal this relationship?',
+        'What potential outcome can I expect in our relationship over the next 3 months?'
+      ] : [
+        'Suy nghĩ và cảm xúc cốt lõi của đối phương dành cho tôi hiện tại là gì?',
+        'Tôi nên hành động như thế nào để gắn kết hoặc cải thiện mối quan hệ này?',
+        'Kết quả triển vọng nhất của hai người trong 3 tháng tới sẽ ra sao?'
+      ];
+    }
+    if (topic.includes('việc') || topic.includes('công') || topic.includes('tiền') || topic.includes('career') || topic.includes('job') || topic.includes('money')) {
+      return isEnglish ? [
+        'What is the biggest advantage or opportunity indicated by this Tarot spread?',
+        'What hidden challenge or obstacle should I prepare for in my career/finance?',
+        'What specific step should I take right now to boost my success?'
+      ] : [
+        'Ưu điểm hoặc cơ hội lớn nhất mà trải bài Tarot chỉ ra cho tôi là gì?',
+        'Thách thức hoặc trở ngại ngầm nào tôi cần chuẩn bị trước trong công việc/tài chính?',
+        'Hành động cụ thể nào tôi nên thực hiện ngay lúc này để gia tăng thành công?'
+      ];
+    }
+    return isEnglish ? [
+      'What key message or lesson are the Tarot cards giving me right now?',
+      'What hidden factors or influences am I currently ignoring?',
+      'What is the most recommended next step for me to move forward?'
+    ] : [
+      'Thông điệp hay bài học quan trọng nhất mà các lá bài Tarot muốn nhắn gửi là gì?',
+      'Yếu tố ngầm hay tác động nào mà tôi đang vô tình bỏ qua?',
+      'Bước đi tiếp theo được khuyến nghị nhất cho tôi lúc này là gì?'
+    ];
+  };
+
+  const suggestedQuestions = extractAiSuggestedQuestions(interpretation, question, isEn);
+
   // ─── Follow-up Q&A Handler ────────────────────────────────────────────────
-  const handleSendFollowUp = async (e) => {
+  const handleSendFollowUp = async (e, textOverride = null) => {
     if (e) e.preventDefault();
-    if (!userQuestion.trim() || askingFollowUp || followUps.length >= 5 || !isCharCountValid) return;
+    const questionToSend = (textOverride || userQuestion).trim();
+    if (!questionToSend || askingFollowUp || followUps.length >= 5) return;
 
     // Check quota before calling AI
     const quotaResult = await consumeQuota();
@@ -400,7 +458,6 @@ export default function AiInterpretationPanel({
       return;
     }
 
-    const questionToSend = userQuestion.trim();
     setAskingFollowUp(true);
     setFollowUpError('');
     setCurrentFollowUpAnswer('');
@@ -832,7 +889,46 @@ export default function AiInterpretationPanel({
 
             {/* Question input form */}
             {followUps.length < 5 ? (
-              <form onSubmit={handleSendFollowUp} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <form onSubmit={handleSendFollowUp} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* 3 AI Suggested Questions Pill Buttons */}
+                {!askingFollowUp && (
+                  <div>
+                    <div style={{ fontSize: '0.78rem', color: '#c4b5fd', fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>💡</span> {isEn ? 'AI Suggested Follow-up Questions (Click to ask immediately):' : 'AI gợi ý 3 câu hỏi tiếp theo (Bấm vào để hỏi ngay):'}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {suggestedQuestions.map((qText, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={askingFollowUp}
+                          onClick={() => handleSendFollowUp(null, qText)}
+                          style={{
+                            background: 'rgba(167,139,250,0.08)',
+                            border: '1px solid rgba(167,139,250,0.25)',
+                            borderRadius: 10,
+                            padding: '8px 14px',
+                            fontSize: '0.825rem',
+                            color: '#dfdbf0',
+                            cursor: askingFollowUp ? 'not-allowed' : 'pointer',
+                            textAlign: 'left',
+                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            fontFamily: 'inherit',
+                          }}
+                          onMouseEnter={e => { if (!askingFollowUp) e.currentTarget.style.background = 'rgba(167,139,250,0.18)'; }}
+                          onMouseLeave={e => { if (!askingFollowUp) e.currentTarget.style.background = 'rgba(167,139,250,0.08)'; }}
+                        >
+                          <span style={{ fontSize: '0.9rem', color: '#a78bfa' }}>🔮</span>
+                          <span style={{ flex: 1 }}>{qText}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <textarea
                     rows={2}
