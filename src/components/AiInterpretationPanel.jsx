@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext.jsx';
+import { usePlan } from '../hooks/usePlan.js';
+import PricingModal from './PricingModal.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const PREDEFINED_MODELS = [
   { value: 'combo1', label: 'combo1 (Combo)' },
@@ -55,6 +58,11 @@ export default function AiInterpretationPanel({
   const isCharCountValid = charCount > 0 && charCount <= 2048;
 
   const isEn = language === 'en';
+
+  // ─── Quota & Plan ─────────────────────────────────────────────────────────
+  const { isAuthenticated } = useAuth();
+  const { canAsk, remaining, plan, canBonus, consumeQuota, requestBonus, applyCoupon } = usePlan(isAuthenticated);
+  const [showPricing, setShowPricing] = useState(false);
 
   // Restore conversation từ savedConversation prop (khi load từ history)
   useEffect(() => {
@@ -242,6 +250,14 @@ export default function AiInterpretationPanel({
 
   const handleInterpret = async () => {
     if (!drawnCards || drawnCards.length === 0) return;
+
+    // Check quota before calling AI
+    const quotaResult = await consumeQuota();
+    if (!quotaResult.ok) {
+      setShowPricing(true);
+      return;
+    }
+
     setLoading(true);
     setError('');
     setInterpretation('');
@@ -375,6 +391,13 @@ Always respond in Vietnamese (unless English is explicitly requested, but defaul
   const handleSendFollowUp = async (e) => {
     if (e) e.preventDefault();
     if (!userQuestion.trim() || askingFollowUp || followUps.length >= 5 || !isCharCountValid) return;
+
+    // Check quota before calling AI
+    const quotaResult = await consumeQuota();
+    if (!quotaResult.ok) {
+      setShowPricing(true);
+      return;
+    }
 
     const questionToSend = userQuestion.trim();
     setAskingFollowUp(true);
@@ -542,6 +565,15 @@ Yêu cầu quan trọng khi trả lời câu hỏi thêm:
   }
 
   return (
+    <>
+    <PricingModal
+      isOpen={showPricing}
+      onClose={() => setShowPricing(false)}
+      currentPlan={plan}
+      canBonus={canBonus}
+      onRequestBonus={requestBonus}
+      onApplyCoupon={applyCoupon}
+    />
     <div className="interpretation-section glass-panel" style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(229,193,88,0.2)', paddingBottom: '12px' }}>
@@ -551,24 +583,27 @@ Yêu cầu quan trọng khi trả lời câu hỏi thêm:
             {t('ai.title', 'Luận giải Tarot bằng AI')}
           </h2>
         </div>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            fontSize: '0.85rem',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            border: '1px solid rgba(255,255,255,0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-          }}
-        >
-          ⚙️ <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{t('ai.settings', 'Cấu hình')}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Quota badge */}
+          <div style={{
+            fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', borderRadius: '20px',
+            background: 'rgba(255,255,255,0.06)', color: remaining === 0 ? '#ef4444' : '#94a3b8',
+            border: `1px solid ${remaining === 0 ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.08)'}`,
+          }}>
+            ⚡ {remaining} lượt còn lại
+          </div>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            style={{
+              background: 'none', border: 'none', color: 'var(--text-muted)',
+              cursor: 'pointer', fontSize: '0.85rem', padding: '4px 8px',
+              borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex', alignItems: 'center', gap: '4px',
+            }}
+          >
+            ⚙️ <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{t('ai.settings', 'Cấu hình')}</span>
+          </button>
+        </div>
       </div>
 
       {/* AI Settings Form */}
@@ -871,5 +906,6 @@ Yêu cầu quan trọng khi trả lời câu hỏi thêm:
         }
       `}</style>
     </div>
+    </>
   );
 }
