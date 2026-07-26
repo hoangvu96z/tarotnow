@@ -1,53 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const SSO_BASE = import.meta.env.VITE_SSO_URL || '';
 
-const PLANS = [
+const DEFAULT_PLANS = [
   {
     name: 'free',
     label: 'Miễn Phí',
     emoji: '⚡',
-    price: 'Miễn phí',
+    price: 0,
+    dailyLimit: 1,
+    monthlyLimit: 30,
+    canBonus: false,
     color: '#64748b',
-    features: [
-      '1 lượt hỏi AI mỗi ngày',
-      'Lưu lịch sử quẻ',
-      'Xem giải nghĩa cơ bản',
-    ],
-    notIncluded: ['Hỏi thêm 5 câu', 'Ưu tiên hỗ trợ'],
+    highlight: false,
   },
   {
     name: 'lite',
     label: 'Lite',
     emoji: '🌟',
-    price: '49.000đ',
-    period: '/tháng',
+    price: 49000,
+    dailyLimit: 5,
+    monthlyLimit: 60,
+    canBonus: false,
     color: '#f59e0b',
     highlight: false,
-    features: [
-      '5 lượt hỏi AI mỗi ngày',
-      'Tối đa 60 lượt/tháng',
-      'Lưu lịch sử không giới hạn',
-      'Giải nghĩa chi tiết hơn',
-    ],
-    notIncluded: ['Hỏi thêm 5 câu'],
   },
   {
     name: 'premium',
     label: 'Premium',
     emoji: '💎',
-    price: '99.000đ',
-    period: '/tháng',
+    price: 99000,
+    dailyLimit: -1,
+    monthlyLimit: 180,
+    canBonus: true,
     color: '#6366f1',
     highlight: true,
-    features: [
-      'Không giới hạn lượt/ngày',
-      'Tối đa 180 lượt/tháng',
-      '✨ Hỏi thêm 5 câu mỗi ngày',
-      'Phân tích AI sâu nhất',
-      'Ưu tiên hỗ trợ',
-    ],
-    notIncluded: [],
   },
 ];
 
@@ -63,6 +50,32 @@ export default function PricingModal({
   const [couponMsg, setCouponMsg] = useState('');
   const [couponLoading, setCouponLoading] = useState(false);
   const [bonusLoading, setBonusLoading] = useState(false);
+  const [dynamicPlans, setDynamicPlans] = useState(DEFAULT_PLANS);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetch(`${SSO_BASE}/plans/config`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data.plans) && data.plans.length > 0) {
+            // Merge dynamic plans from DB with UI metadata
+            const merged = data.plans.map((p) => {
+              const meta = DEFAULT_PLANS.find((dp) => dp.name === p.name) || {};
+              return {
+                ...meta,
+                ...p,
+                label: p.label || meta.label || p.name,
+                emoji: meta.emoji || '📦',
+                color: meta.color || '#6366f1',
+                highlight: p.name === 'premium',
+              };
+            });
+            setDynamicPlans(merged);
+          }
+        })
+        .catch((err) => console.error('Failed to load plans config:', err));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -83,8 +96,55 @@ export default function PricingModal({
     if (result.ok) {
       onClose();
     } else {
-      alert(result.error);
+      alert(result.error || 'Không thể xin thêm câu');
     }
+  };
+
+  const formatPrice = (price) => {
+    if (price === 0 || !price) return 'Miễn phí';
+    return `${Number(price).toLocaleString('vi-VN')}đ`;
+  };
+
+  const getFeatures = (plan) => {
+    const dailyText =
+      plan.dailyLimit === -1
+        ? 'Không giới hạn lượt/ngày'
+        : `${plan.dailyLimit} lượt hỏi AI mỗi ngày`;
+    const monthlyText =
+      plan.monthlyLimit === -1
+        ? 'Không giới hạn lượt/tháng'
+        : `Tối đa ${plan.monthlyLimit} lượt/tháng`;
+
+    if (plan.name === 'free') {
+      return [
+        dailyText,
+        monthlyText,
+        'Lưu lịch sử quẻ / bói',
+        'Xem giải nghĩa cơ bản',
+      ];
+    }
+    if (plan.name === 'lite') {
+      return [
+        dailyText,
+        monthlyText,
+        'Lưu lịch sử không giới hạn',
+        'Giải nghĩa chi tiết hơn',
+      ];
+    }
+    // Premium
+    return [
+      dailyText,
+      monthlyText,
+      '✨ Hỏi thêm 5 câu AI cho mỗi quẻ / bói',
+      'Phân tích AI sâu nhất',
+      'Ưu tiên hỗ trợ',
+    ];
+  };
+
+  const getNotIncluded = (plan) => {
+    if (plan.name === 'free') return ['Hỏi thêm 5 câu cho mỗi quẻ / bói', 'Ưu tiên hỗ trợ'];
+    if (plan.name === 'lite') return ['Hỏi thêm 5 câu cho mỗi quẻ / bói'];
+    return [];
   };
 
   return (
@@ -130,7 +190,7 @@ export default function PricingModal({
             textAlign: 'center',
           }}>
             <div style={{ color: '#c4b5fd', fontSize: '0.85rem', marginBottom: '10px', fontWeight: 600 }}>
-              💎 Bạn đang dùng gói Premium — có thể hỏi thêm 5 câu hôm nay!
+              💎 Bạn đang dùng gói Premium — có thể hỏi thêm 5 câu cho quẻ này!
             </div>
             <button
               onClick={handleBonus}
@@ -150,66 +210,117 @@ export default function PricingModal({
 
         {/* Plan cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          {PLANS.map(plan => (
-            <div key={plan.name} style={{
-              background: plan.highlight
-                ? 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1))'
-                : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${plan.highlight ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
-              borderRadius: '14px', padding: '20px',
-              position: 'relative',
-              transform: plan.highlight ? 'scale(1.02)' : 'none',
-            }}>
-              {plan.highlight && (
-                <div style={{
-                  position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)',
-                  background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                  color: '#fff', fontSize: '0.7rem', fontWeight: 800,
-                  padding: '4px 12px', borderRadius: '20px',
-                }}>
-                  ĐỀ XUẤT
+          {dynamicPlans.map((plan) => {
+            const features = getFeatures(plan);
+            const notIncluded = getNotIncluded(plan);
+
+            return (
+              <div
+                key={plan.name}
+                style={{
+                  background: plan.highlight
+                    ? 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1))'
+                    : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${plan.highlight ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                  borderRadius: '14px',
+                  padding: '20px',
+                  position: 'relative',
+                  transform: plan.highlight ? 'scale(1.02)' : 'none',
+                }}
+              >
+                {plan.highlight && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '-12px',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                      color: '#fff',
+                      fontSize: '0.7rem',
+                      fontWeight: 800,
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                    }}
+                  >
+                    ĐỀ XUẤT
+                  </div>
+                )}
+                <div style={{ textAlign: 'center', marginBottom: '14px' }}>
+                  <div style={{ fontSize: '1.5rem' }}>{plan.emoji}</div>
+                  <div style={{ color: '#f8fafc', fontWeight: 800, fontSize: '1rem', marginTop: '4px' }}>
+                    {plan.label}
+                  </div>
+                  <div style={{ color: plan.color, fontWeight: 800, fontSize: '1.3rem', marginTop: '4px' }}>
+                    {formatPrice(plan.price)}
+                    {plan.price > 0 && (
+                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/tháng</span>
+                    )}
+                  </div>
                 </div>
-              )}
-              <div style={{ textAlign: 'center', marginBottom: '14px' }}>
-                <div style={{ fontSize: '1.5rem' }}>{plan.emoji}</div>
-                <div style={{ color: '#f8fafc', fontWeight: 800, fontSize: '1rem', marginTop: '4px' }}>{plan.label}</div>
-                <div style={{ color: plan.color, fontWeight: 800, fontSize: '1.3rem', marginTop: '4px' }}>
-                  {plan.price}<span style={{ fontSize: '0.75rem', color: '#64748b' }}>{plan.period}</span>
-                </div>
+
+                {features.map((f) => (
+                  <div
+                    key={f}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.8rem',
+                      color: '#cbd5e1',
+                      marginBottom: '6px',
+                    }}
+                  >
+                    <span style={{ color: '#10b981', flexShrink: 0 }}>✓</span> {f}
+                  </div>
+                ))}
+
+                {notIncluded.map((f) => (
+                  <div
+                    key={f}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '0.8rem',
+                      color: '#475569',
+                      marginBottom: '6px',
+                      textDecoration: 'line-through',
+                    }}
+                  >
+                    <span style={{ flexShrink: 0 }}>✕</span> {f}
+                  </div>
+                ))}
+
+                {plan.name !== 'free' && plan.name !== currentPlan && (
+                  <button
+                    onClick={() => alert('Liên hệ admin để nâng cấp gói!')}
+                    style={{
+                      width: '100%',
+                      marginTop: '14px',
+                      background: plan.highlight
+                        ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
+                        : 'rgba(255,255,255,0.08)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '9px',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Nâng cấp {plan.label}
+                  </button>
+                )}
+                {plan.name === currentPlan && (
+                  <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '0.78rem', color: '#475569' }}>
+                    Gói hiện tại
+                  </div>
+                )}
               </div>
-              {plan.features.map(f => (
-                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#cbd5e1', marginBottom: '6px' }}>
-                  <span style={{ color: '#10b981', flexShrink: 0 }}>✓</span> {f}
-                </div>
-              ))}
-              {plan.notIncluded?.map(f => (
-                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#475569', marginBottom: '6px', textDecoration: 'line-through' }}>
-                  <span style={{ flexShrink: 0 }}>✕</span> {f}
-                </div>
-              ))}
-              {plan.name !== 'free' && plan.name !== currentPlan && (
-                <button
-                  onClick={() => alert('Liên hệ admin để nâng cấp gói!')}
-                  style={{
-                    width: '100%', marginTop: '14px',
-                    background: plan.highlight
-                      ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
-                      : 'rgba(255,255,255,0.08)',
-                    color: '#fff', border: 'none', borderRadius: '8px',
-                    padding: '9px', fontSize: '0.82rem', fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Nâng cấp {plan.label}
-                </button>
-              )}
-              {plan.name === currentPlan && (
-                <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '0.78rem', color: '#475569' }}>
-                  Gói hiện tại
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Coupon input */}
@@ -224,8 +335,8 @@ export default function PricingModal({
           <div style={{ display: 'flex', gap: '10px' }}>
             <input
               value={couponCode}
-              onChange={e => setCouponCode(e.target.value.toUpperCase())}
-              onKeyDown={e => e.key === 'Enter' && handleApplyCoupon()}
+              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
               placeholder="VD: TRIAL7, PREMIUM30..."
               style={{
                 flex: 1, background: 'rgba(255,255,255,0.07)',
