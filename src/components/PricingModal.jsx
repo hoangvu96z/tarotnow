@@ -11,7 +11,7 @@ const DEFAULT_PLANS = [
     dailyLimit: 1,
     monthlyLimit: 30,
     canBonus: false,
-    color: '#64748b',
+    color: '#94a3b8',
     highlight: false,
   },
   {
@@ -33,7 +33,7 @@ const DEFAULT_PLANS = [
     dailyLimit: -1,
     monthlyLimit: 180,
     canBonus: true,
-    color: '#6366f1',
+    color: '#818cf8',
     highlight: true,
   },
 ];
@@ -58,15 +58,14 @@ export default function PricingModal({
         .then((res) => res.json())
         .then((data) => {
           if (Array.isArray(data.plans) && data.plans.length > 0) {
-            // Merge dynamic plans from DB with UI metadata
             const merged = data.plans.map((p) => {
               const meta = DEFAULT_PLANS.find((dp) => dp.name === p.name) || {};
               return {
                 ...meta,
                 ...p,
                 label: p.label || meta.label || p.name,
-                emoji: meta.emoji || '📦',
-                color: meta.color || '#6366f1',
+                emoji: meta.emoji || '🔮',
+                color: meta.color || '#818cf8',
                 highlight: p.name === 'premium',
               };
             });
@@ -119,7 +118,7 @@ export default function PricingModal({
       return [
         dailyText,
         monthlyText,
-        'Lưu lịch sử quẻ / bói',
+        'Lưu lịch sử trải bài',
         'Xem giải nghĩa cơ bản',
       ];
     }
@@ -131,19 +130,18 @@ export default function PricingModal({
         'Giải nghĩa chi tiết hơn',
       ];
     }
-    // Premium
     return [
       dailyText,
       monthlyText,
-      '✨ Hỏi thêm 5 câu AI cho mỗi quẻ / bói',
+      '✨ Hỏi thêm 5 câu AI cho mỗi trải bài',
       'Phân tích AI sâu nhất',
       'Ưu tiên hỗ trợ',
     ];
   };
 
   const getNotIncluded = (plan) => {
-    if (plan.name === 'free') return ['Hỏi thêm 5 câu cho mỗi quẻ / bói', 'Ưu tiên hỗ trợ'];
-    if (plan.name === 'lite') return ['Hỏi thêm 5 câu cho mỗi quẻ / bói'];
+    if (plan.name === 'free') return ['Hỏi thêm 5 câu cho mỗi trải bài', 'Ưu tiên hỗ trợ'];
+    if (plan.name === 'lite') return ['Hỏi thêm 5 câu cho mỗi trải bài'];
     return [];
   };
 
@@ -152,31 +150,32 @@ export default function PricingModal({
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.7)',
-        backdropFilter: 'blur(8px)',
+        background: 'rgba(5, 8, 22, 0.85)',
+        backdropFilter: 'blur(10px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '16px',
+        fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif",
       }}
     >
       <div style={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%)',
-        border: '1px solid rgba(99,102,241,0.3)',
-        borderRadius: '20px',
+        background: 'linear-gradient(135deg, #0b0f19 0%, #1e1b4b 50%, #0f172a 100%)',
+        border: '1px solid rgba(139, 92, 246, 0.4)',
+        borderRadius: '24px',
         padding: '32px',
         maxWidth: '760px',
         width: '100%',
         maxHeight: '90vh',
         overflowY: 'auto',
-        boxShadow: '0 25px 60px -10px rgba(0,0,0,0.6)',
+        boxShadow: '0 25px 60px -10px rgba(0,0,0,0.8), 0 0 40px rgba(139, 92, 246, 0.2)',
       }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🚀</div>
+          <div style={{ fontSize: '2.2rem', marginBottom: '6px' }}>🔮</div>
           <h2 style={{ color: '#f8fafc', fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>
-            Nâng cấp để hỏi nhiều hơn
+            Nâng Cấp Gói Luận Giải Tarot
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '8px' }}>
-            Bạn đã dùng hết lượt AI hôm nay.{' '}
+          <p style={{ color: '#c4b5fd', fontSize: '0.9rem', marginTop: '8px' }}>
+            Bạn đã dùng hết lượt luận giải Tarot AI hôm nay.{' '}
             {canBonus && <strong style={{ color: '#818cf8' }}>Hoặc dùng "Hỏi thêm 5 câu" ngay bây giờ!</strong>}
           </p>
         </div>
@@ -184,13 +183,13 @@ export default function PricingModal({
         {/* Bonus button (Premium only) */}
         {canBonus && (
           <div style={{
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2))',
-            border: '1px solid rgba(99,102,241,0.4)',
-            borderRadius: '12px', padding: '16px', marginBottom: '24px',
+            background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(139, 92, 246, 0.25))',
+            border: '1px solid rgba(139, 92, 246, 0.5)',
+            borderRadius: '14px', padding: '16px', marginBottom: '24px',
             textAlign: 'center',
           }}>
             <div style={{ color: '#c4b5fd', fontSize: '0.85rem', marginBottom: '10px', fontWeight: 600 }}>
-              💎 Bạn đang dùng gói Premium — có thể hỏi thêm 5 câu cho quẻ này!
+              💎 Bạn đang dùng gói Premium — có thể hỏi thêm 5 câu cho trải bài này!
             </div>
             <button
               onClick={handleBonus}
@@ -201,6 +200,7 @@ export default function PricingModal({
                 padding: '10px 24px', fontSize: '0.9rem', fontWeight: 700,
                 cursor: bonusLoading ? 'not-allowed' : 'pointer',
                 opacity: bonusLoading ? 0.7 : 1,
+                boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
               }}
             >
               {bonusLoading ? 'Đang xử lý...' : '✨ Hỏi thêm 5 câu ngay'}
@@ -219,10 +219,10 @@ export default function PricingModal({
                 key={plan.name}
                 style={{
                   background: plan.highlight
-                    ? 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1))'
-                    : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${plan.highlight ? 'rgba(99,102,241,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                  borderRadius: '14px',
+                    ? 'linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.15))'
+                    : 'rgba(255, 255, 255, 0.04)',
+                  border: `1px solid ${plan.highlight ? 'rgba(139, 92, 246, 0.6)' : 'rgba(255, 255, 255, 0.08)'}`,
+                  borderRadius: '16px',
                   padding: '20px',
                   position: 'relative',
                   transform: plan.highlight ? 'scale(1.02)' : 'none',
@@ -241,6 +241,7 @@ export default function PricingModal({
                       fontWeight: 800,
                       padding: '4px 12px',
                       borderRadius: '20px',
+                      letterSpacing: '0.05em',
                     }}
                   >
                     ĐỀ XUẤT
@@ -254,7 +255,7 @@ export default function PricingModal({
                   <div style={{ color: plan.color, fontWeight: 800, fontSize: '1.3rem', marginTop: '4px' }}>
                     {formatPrice(plan.price)}
                     {plan.price > 0 && (
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>/tháng</span>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>/tháng</span>
                     )}
                   </div>
                 </div>
@@ -300,9 +301,9 @@ export default function PricingModal({
                       marginTop: '14px',
                       background: plan.highlight
                         ? 'linear-gradient(135deg, #6366f1, #8b5cf6)'
-                        : 'rgba(255,255,255,0.08)',
+                        : 'rgba(255, 255, 255, 0.08)',
                       color: '#fff',
-                      border: 'none',
+                      border: plan.highlight ? 'none' : '1px solid rgba(255, 255, 255, 0.12)',
                       borderRadius: '8px',
                       padding: '9px',
                       fontSize: '0.82rem',
@@ -314,7 +315,7 @@ export default function PricingModal({
                   </button>
                 )}
                 {plan.name === currentPlan && (
-                  <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '0.78rem', color: '#475569' }}>
+                  <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '0.78rem', color: '#64748b' }}>
                     Gói hiện tại
                   </div>
                 )}
@@ -325,11 +326,11 @@ export default function PricingModal({
 
         {/* Coupon input */}
         <div style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '12px', padding: '16px',
         }}>
-          <div style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600, marginBottom: '10px' }}>
+          <div style={{ color: '#c4b5fd', fontSize: '0.85rem', fontWeight: 600, marginBottom: '10px' }}>
             🎟️ Có mã khuyến mãi? Nhập tại đây
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -339,8 +340,8 @@ export default function PricingModal({
               onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
               placeholder="VD: TRIAL7, PREMIUM30..."
               style={{
-                flex: 1, background: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.12)',
+                flex: 1, background: 'rgba(255, 255, 255, 0.07)',
+                border: '1px solid rgba(255, 255, 255, 0.12)',
                 color: '#f8fafc', borderRadius: '8px',
                 padding: '9px 14px', fontSize: '0.88rem', outline: 'none',
                 textTransform: 'uppercase', letterSpacing: '0.05em',
@@ -373,7 +374,7 @@ export default function PricingModal({
           style={{
             width: '100%', marginTop: '16px',
             background: 'transparent', color: '#64748b',
-            border: '1px solid rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '10px', padding: '10px',
             fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600,
           }}
