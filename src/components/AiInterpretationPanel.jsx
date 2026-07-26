@@ -846,11 +846,10 @@ Yêu cầu quan trọng khi trả lời câu hỏi thêm:
                       boxSizing: 'border-box', minHeight: 'unset',
                     }}
                   />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 3, fontSize: '0.7rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', marginTop: 3, fontSize: '0.7rem' }}>
                     <span style={{ color: charCount > 2048 ? '#eb5e55' : 'rgba(229,193,88,0.5)', fontWeight: charCount > 2048 ? 700 : 400 }}>
                       {charCount > 2048 ? `⚠️ Đã vượt quá 2048 ký tự (${charCount})` : `${charCount} / 2048 ký tự`}
                     </span>
-                    <span style={{ color: 'rgba(229,193,88,0.5)' }}>Còn lại {5 - followUps.length} lượt hỏi</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
