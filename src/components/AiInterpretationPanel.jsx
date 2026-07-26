@@ -390,60 +390,51 @@ export default function AiInterpretationPanel({
     return `Câu hỏi: "${question || 'Không có'}"\nTrải bài: ${spreadName || 'Custom'}\nCác lá bài:\n${cardsText}`;
   };
 
-  const extractAiSuggestedQuestions = (text, qTopic, isEnglish) => {
-    const list = [];
-    if (text) {
-      const matches = text.match(/(?:-|\*|\d+\.)?\s*💡\s*(?:Q\d+:?)?\s*([^\n\r]+)/gi);
-      if (matches && matches.length >= 1) {
-        matches.forEach(m => {
-          const cleaned = m
-            .replace(/(?:-|\*|\d+\.)?\s*💡\s*(?:Q\d+:?)?\s*/i, '')
-            .replace(/^[-*0-9.:\s]+/, '')
-            .trim();
-          if (cleaned && cleaned.length > 5 && !list.includes(cleaned)) {
-            list.push(cleaned);
+  const parseInterpretationAndQuestions = (fullText) => {
+    if (!fullText) return { cleanText: '', questions: [] };
+
+    let cleanText = fullText;
+    let questionsPart = '';
+
+    const regexHeader = /(?:---SUGGESTED_QUESTIONS---|###?\s*💡?\s*Gợi ý\s*(?:3\s*)?câu hỏi|###?\s*💡?\s*Suggested\s*(?:3\s*)?Follow-up|💡\s*Gợi ý\s*(?:3\s*)?câu hỏi|💡\s*Suggested\s*(?:3\s*)?Follow-up)/i;
+    const match = fullText.match(regexHeader);
+
+    if (match && match.index !== undefined) {
+      cleanText = fullText.slice(0, match.index).trim();
+      cleanText = cleanText.replace(/---\s*$/, '').trim();
+      questionsPart = fullText.slice(match.index).trim();
+    }
+
+    const questions = [];
+    if (questionsPart) {
+      const lines = questionsPart.split('\n');
+      lines.forEach(line => {
+        let cleaned = line.trim();
+        if (/gợi ý|suggested|follow-up|câu hỏi tiếp theo/i.test(cleaned) && !/Q\d|câu hỏi \d|\?/i.test(cleaned)) {
+          return;
+        }
+
+        cleaned = cleaned
+          .replace(/^(?:---SUGGESTED_QUESTIONS---|###?\s*|💡\s*|\d+\.|\*|-)*\s*/gi, '')
+          .replace(/^(?:\*\*)?Q\d+:?\s*/gi, '')
+          .replace(/^\*\*/, '')
+          .replace(/\*\*$/, '')
+          .replace(/^["'“`]+|["'”`]+$/g, '')
+          .replace(/\*\*+/g, '')
+          .trim();
+
+        if (cleaned && cleaned.length > 8) {
+          if (!questions.includes(cleaned)) {
+            questions.push(cleaned);
           }
-        });
-      }
+        }
+      });
     }
 
-    if (list.length >= 3) return list.slice(0, 3);
-
-    const topic = (qTopic || '').toLowerCase();
-    if (topic.includes('tình') || topic.includes('yêu') || topic.includes('love') || topic.includes('relationship') || topic.includes('kết hôn')) {
-      return isEnglish ? [
-        'What are the core feelings and thoughts of the other person towards me?',
-        'What action should I take to strengthen or heal this relationship?',
-        'What potential outcome can I expect in our relationship over the next 3 months?'
-      ] : [
-        'Suy nghĩ và cảm xúc cốt lõi của đối phương dành cho tôi hiện tại là gì?',
-        'Tôi nên hành động như thế nào để gắn kết hoặc cải thiện mối quan hệ này?',
-        'Kết quả triển vọng nhất của hai người trong 3 tháng tới sẽ ra sao?'
-      ];
-    }
-    if (topic.includes('việc') || topic.includes('công') || topic.includes('tiền') || topic.includes('career') || topic.includes('job') || topic.includes('money')) {
-      return isEnglish ? [
-        'What is the biggest advantage or opportunity indicated by this Tarot spread?',
-        'What hidden challenge or obstacle should I prepare for in my career/finance?',
-        'What specific step should I take right now to boost my success?'
-      ] : [
-        'Ưu điểm hoặc cơ hội lớn nhất mà trải bài Tarot chỉ ra cho tôi là gì?',
-        'Thách thức hoặc trở ngại ngầm nào tôi cần chuẩn bị trước trong công việc/tài chính?',
-        'Hành động cụ thể nào tôi nên thực hiện ngay lúc này để gia tăng thành công?'
-      ];
-    }
-    return isEnglish ? [
-      'What key message or lesson are the Tarot cards giving me right now?',
-      'What hidden factors or influences am I currently ignoring?',
-      'What is the most recommended next step for me to move forward?'
-    ] : [
-      'Thông điệp hay bài học quan trọng nhất mà các lá bài Tarot muốn nhắn gửi là gì?',
-      'Yếu tố ngầm hay tác động nào mà tôi đang vô tình bỏ qua?',
-      'Bước đi tiếp theo được khuyến nghị nhất cho tôi lúc này là gì?'
-    ];
+    return { cleanText, questions: questions.slice(0, 3) };
   };
 
-  const suggestedQuestions = extractAiSuggestedQuestions(interpretation, question, isEn);
+  const { cleanText: displayInterpretation, questions: aiSuggestedQuestions } = parseInterpretationAndQuestions(interpretation);
 
   // ─── Follow-up Q&A Handler ────────────────────────────────────────────────
   const handleSendFollowUp = async (e, textOverride = null) => {
