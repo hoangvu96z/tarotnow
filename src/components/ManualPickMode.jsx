@@ -21,6 +21,7 @@ export default function ManualPickMode({
   setWeights, 
   activeReadingId, 
   onSaveAiConversation, 
+  savedConversation,
   onSaveReading 
 }) {
   const { language } = useLanguage();
@@ -291,6 +292,7 @@ export default function ManualPickMode({
               getCardMeaning={getCardMeaning}
               readingId={activeReadingId}
               onSaveAiConversation={onSaveAiConversation}
+              savedConversation={savedConversation}
             />
           </div>
 

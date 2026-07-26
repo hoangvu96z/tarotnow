@@ -63,6 +63,48 @@ export default function App() {
 
   // Track active reading ID for AI conversation persistence
   const [activeReadingId, setActiveReadingId] = useState(null);
+  const [savedConversation, setSavedConversation] = useState(null);
+
+  const handleSelectHistoryItem = useCallback((item) => {
+    if (!item) return;
+
+    const restoredQuestion = item.question || item.data?.question || '';
+    setQuestion(restoredQuestion);
+    setCurrentDrawnQuestion(restoredQuestion);
+
+    const restoredSpread = item.spread || item.data?.activeSpread || item.spreadId || '1-card';
+    setActiveSpread(restoredSpread);
+
+    let cardsList = [];
+    if (Array.isArray(item.data?.drawnCards) && item.data.drawnCards.length > 0) {
+      cardsList = item.data.drawnCards;
+    } else if (Array.isArray(item.cards) && item.cards.length > 0) {
+      cardsList = item.cards.map((cHist, idx) => {
+        const fullCard = tarotCards.find((tc) => tc.id === cHist.id);
+        return fullCard
+          ? {
+              ...fullCard,
+              orientation: cHist.orientation || 'upright',
+              drawPosition: idx + 1,
+            }
+          : cHist;
+      });
+    }
+
+    setDrawnCards(cardsList);
+    setActiveReadingId(item._remoteId || item.id || null);
+    setSavedConversation(item.data?.aiConversation || null);
+
+    if (String(restoredSpread).startsWith('manual')) {
+      setActiveMode('manual');
+    } else {
+      setActiveMode('random');
+    }
+
+    setTimeout(() => {
+      window.scrollTo({ top: 380, behavior: 'smooth' });
+    }, 100);
+  }, [tarotCards]);
 
   // Tải lịch sử khi mount hoặc khi auth state thay đổi
   useEffect(() => {
@@ -697,6 +739,7 @@ ${summaryObj.advice}
                 getCardMeaning={getCardMeaning}
                 readingId={activeReadingId}
                 onSaveAiConversation={updateReadingData}
+                savedConversation={savedConversation}
               />
               <PromptExporter
                 question={currentDrawnQuestion}
@@ -803,7 +846,12 @@ ${summaryObj.advice}
                     ? t('spread.name.' + item.spreadId, item.spreadName) 
                     : (item.spreadName === 'Tùy chỉnh' || item.spreadName === 'Custom' ? t('history.custom', 'Tùy chỉnh') : item.spreadName);
                   return (
-                    <div key={item.id} className="history-item">
+                    <div 
+                      key={item.id} 
+                      className="history-item" 
+                      onClick={() => handleSelectHistoryItem(item)}
+                      style={{ cursor: 'pointer' }}
+                    >
                       <div className="history-meta">
                         <span>{histSpreadName}</span>
                         <span>{item.timestamp}</span>
@@ -857,6 +905,7 @@ ${summaryObj.advice}
             onClose={() => setIsManageModalOpen(false)}
             history={history}
             tarotCards={tarotCards}
+            onSelect={handleSelectHistoryItem}
             onDeleteMultiple={deleteMultipleReadings}
             onClearAll={clearHistory}
           />
