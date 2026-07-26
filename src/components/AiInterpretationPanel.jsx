@@ -16,7 +16,10 @@ export default function AiInterpretationPanel({
   spreadPositions,
   interpretationContext,
   interpretationSummary,
-  getCardMeaning
+  getCardMeaning,
+  readingId,
+  onSaveAiConversation,
+  savedConversation,
 }) {
   const { t, language } = useLanguage();
   const [settings, setSettings] = useState({
@@ -41,7 +44,34 @@ export default function AiInterpretationPanel({
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState('');
 
+  // ─── Follow-up Q&A State ──────────────────────────────────────────────────
+  const [followUps, setFollowUps] = useState([]);
+  const [userQuestion, setUserQuestion] = useState('');
+  const [askingFollowUp, setAskingFollowUp] = useState(false);
+  const [followUpError, setFollowUpError] = useState('');
+  const [currentFollowUpAnswer, setCurrentFollowUpAnswer] = useState('');
+
+  const charCount = userQuestion.length;
+  const isCharCountValid = charCount > 0 && charCount <= 2048;
+
   const isEn = language === 'en';
+
+  // Restore conversation từ savedConversation prop (khi load từ history)
+  useEffect(() => {
+    if (savedConversation) {
+      if (savedConversation.initialInterpretation) {
+        setInterpretation(savedConversation.initialInterpretation);
+      }
+      if (Array.isArray(savedConversation.followUps) && savedConversation.followUps.length > 0) {
+        setFollowUps(savedConversation.followUps);
+      }
+    } else {
+      setInterpretation('');
+      setFollowUps([]);
+      setUserQuestion('');
+      setError('');
+    }
+  }, [savedConversation]);
 
   const getResolvedEndpoint = (endpoint) => {
     if (!endpoint) return '';
@@ -301,6 +331,15 @@ Always respond in Vietnamese (unless English is explicitly requested, but defaul
           }
           
           // Successful run, exit loop
+          if (onSaveAiConversation && readingId && resultText) {
+            onSaveAiConversation(readingId, {
+              aiConversation: {
+                initialInterpretation: resultText,
+                initialTimestamp: new Date().toISOString(),
+                followUps: [],
+              }
+            });
+          }
           return;
         } catch (err) {
           console.warn(`Model ${currentModel} failed:`, err);
@@ -319,6 +358,138 @@ Always respond in Vietnamese (unless English is explicitly requested, but defaul
     } finally {
       setLoading(false);
       setStatusText('');
+    }
+  };
+
+  // Helper for context memory
+  const getPlainContext = () => {
+    if (!drawnCards || drawnCards.length === 0) return '';
+    const cardsText = drawnCards.map((c, idx) => {
+      const ori = c.orientation === 'reversed' ? 'Ngược' : 'Xuôi';
+      return `${idx + 1}. ${c.name} — ${ori}`;
+    }).join('\n');
+    return `Câu hỏi: "${question || 'Không có'}"\nTrải bài: ${spreadName || 'Custom'}\nCác lá bài:\n${cardsText}`;
+  };
+
+  // ─── Follow-up Q&A Handler ────────────────────────────────────────────────
+  const handleSendFollowUp = async (e) => {
+    if (e) e.preventDefault();
+    if (!userQuestion.trim() || askingFollowUp || followUps.length >= 5 || !isCharCountValid) return;
+
+    const questionToSend = userQuestion.trim();
+    setAskingFollowUp(true);
+    setFollowUpError('');
+    setCurrentFollowUpAnswer('');
+
+    try {
+      const sysPrompt = `Bạn là một chuyên gia Tarot chuyên nghiệp, am hiểu sâu sắc về biểu tượng học Rider-Waite-Smith.
+Người dùng đang hỏi thêm một câu hỏi cụ thể dựa trên trải bài Tarot và luận giải đã có trước đó.
+Yêu cầu quan trọng khi trả lời câu hỏi thêm:
+1. Trả lời NGẮN GỌN, súc tích, đi thẳng vào trọng tâm câu hỏi. KHÔNG dông dài, KHÔNG lặp lại phần giới thiệu hay tên các lá bài đã biết.
+2. Phân tích ngắn gọn dựa trên các lá bài đã rút và luận giải trước đó.
+3. Đưa ra kết luận hoặc lời khuyên cụ thể, ngắn gọn, dễ hiểu. Luôn trả lời bằng tiếng Việt.`;
+
+      const contextPrompt = getPlainContext();
+
+      const messages = [
+        { role: 'system', content: sysPrompt },
+        { role: 'user', content: `Trải bài Tarot của tôi:\n${contextPrompt}` },
+        { role: 'assistant', content: interpretation }
+      ];
+
+      followUps.forEach(item => {
+        messages.push({ role: 'user', content: item.question });
+        messages.push({ role: 'assistant', content: item.answer });
+      });
+
+      messages.push({ role: 'user', content: questionToSend });
+
+      const fallbackModels = Array.from(new Set([settings.model, 'combo1', 'openrouter/tencent/hy3:free'])).filter(Boolean);
+      let lastErr = null;
+      let finalAns = '';
+
+      for (let i = 0; i < fallbackModels.length; i++) {
+        const currentModel = fallbackModels[i];
+        try {
+          const callEndpoint = getResolvedEndpoint(settings.endpoint);
+          const response = await fetch(`${callEndpoint}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(settings.apiKey ? { 'Authorization': `Bearer ${settings.apiKey}` } : {})
+            },
+            body: JSON.stringify({ model: currentModel, messages, stream: true })
+          });
+
+          if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText || `HTTP error ${response.status}`);
+          }
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let done = false;
+          let buffer = '';
+
+          while (!done) {
+            const { value, done: readerDone } = await reader.read();
+            done = readerDone;
+            if (value) {
+              buffer += decoder.decode(value, { stream: true });
+              let boundary = buffer.indexOf('\n');
+              while (boundary !== -1) {
+                const line = buffer.slice(0, boundary).trim();
+                buffer = buffer.slice(boundary + 1);
+                boundary = buffer.indexOf('\n');
+                if (line.startsWith('data: ')) {
+                  const jsonStr = line.slice(6).trim();
+                  if (jsonStr === '[DONE]') { done = true; break; }
+                  try {
+                    const parsed = JSON.parse(jsonStr);
+                    finalAns += parsed.choices?.[0]?.delta?.content || '';
+                    setCurrentFollowUpAnswer(finalAns);
+                  } catch (err) {}
+                }
+              }
+            }
+          }
+
+          const newFollowUp = {
+            id: Date.now().toString(),
+            question: questionToSend,
+            answer: finalAns,
+            questionTimestamp: new Date(Date.now() - Math.max(finalAns.length * 5, 1000)).toISOString(),
+            answerTimestamp: new Date().toISOString(),
+          };
+          const updatedFollowUps = [...followUps, newFollowUp];
+          setFollowUps(updatedFollowUps);
+          setUserQuestion('');
+          setCurrentFollowUpAnswer('');
+
+          // Persist follow-up lên server
+          if (onSaveAiConversation && readingId) {
+            onSaveAiConversation(readingId, {
+              aiConversation: {
+                initialInterpretation: interpretation,
+                initialTimestamp: savedConversation?.initialTimestamp || new Date().toISOString(),
+                followUps: updatedFollowUps,
+              }
+            });
+          }
+          return;
+        } catch (err) {
+          console.warn(`Follow-up model ${currentModel} failed:`, err);
+          lastErr = err;
+          setCurrentFollowUpAnswer('');
+        }
+      }
+
+      if (lastErr) throw lastErr;
+    } catch (err) {
+      console.error(err);
+      setFollowUpError(err.message || 'Lỗi khi kết nối AI để trả lời câu hỏi.');
+    } finally {
+      setAskingFollowUp(false);
     }
   };
 
@@ -558,6 +729,118 @@ Always respond in Vietnamese (unless English is explicitly requested, but defaul
           <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(229,193,88,0.15)', borderRadius: '8px', padding: '20px' }}>
             <div dangerouslySetInnerHTML={{ __html: parseMarkdown(interpretation) }} />
           </div>
+
+          {/* ─── Follow-up Q&A Chat Section ─────────────────────────────── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
+            {/* Divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ flex: 1, height: 1, background: 'rgba(229,193,88,0.15)' }} />
+              <span style={{ fontSize: '0.75rem', color: 'rgba(229,193,88,0.7)', fontWeight: 600, letterSpacing: '0.06em' }}>
+                💬 HỎI THÊM AI ({followUps.length}/5)
+              </span>
+              <div style={{ flex: 1, height: 1, background: 'rgba(229,193,88,0.15)' }} />
+            </div>
+
+            {/* Previous Q&A list */}
+            {followUps.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {followUps.map((fu, idx) => (
+                  <div key={fu.id || idx} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {/* Question bubble */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <div style={{ maxWidth: '80%', background: 'rgba(229,193,88,0.12)', border: '1px solid rgba(229,193,88,0.25)', borderRadius: '12px 12px 4px 12px', padding: '8px 12px' }}>
+                        <div style={{ fontSize: '0.82rem', color: '#f5e6a3', fontWeight: 600 }}>{fu.question}</div>
+                        {fu.questionTimestamp && (
+                          <div style={{ fontSize: '0.68rem', color: 'rgba(229,193,88,0.5)', marginTop: 3, textAlign: 'right', fontFamily: 'monospace' }}>
+                            🕐 {new Date(fu.questionTimestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    {/* Answer bubble */}
+                    {fu.answer && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                        <div style={{ maxWidth: '85%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px 12px 12px 12px', padding: '10px 14px' }}>
+                          <div style={{ fontSize: '0.82rem', color: '#dfdbf0', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{fu.answer}</div>
+                          {fu.answerTimestamp && (
+                            <div style={{ fontSize: '0.68rem', color: 'rgba(229,193,88,0.4)', marginTop: 3, fontFamily: 'monospace' }}>
+                              🕐 {new Date(fu.answerTimestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Streaming current answer */}
+            {askingFollowUp && currentFollowUpAnswer && (
+              <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                <div style={{ maxWidth: '85%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px 12px 12px 12px', padding: '10px 14px' }}>
+                  <div style={{ fontSize: '0.82rem', color: '#dfdbf0', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{currentFollowUpAnswer}</div>
+                  <div style={{ fontSize: '0.68rem', color: 'rgba(229,193,88,0.5)', marginTop: 3 }}>⏳ Đang trả lời...</div>
+                </div>
+              </div>
+            )}
+
+            {/* Follow-up error */}
+            {followUpError && (
+              <div style={{ padding: '8px 12px', background: 'rgba(235,94,85,0.08)', border: '1px solid rgba(235,94,85,0.2)', borderRadius: '8px', color: '#eb5e55', fontSize: '12px' }}>
+                ⚠️ {followUpError}
+              </div>
+            )}
+
+            {/* Question input form */}
+            {followUps.length < 5 ? (
+              <form onSubmit={handleSendFollowUp} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div>
+                  <textarea
+                    rows={2}
+                    value={userQuestion}
+                    onChange={(e) => setUserQuestion(e.target.value)}
+                    placeholder="Nhập câu hỏi thêm về trải bài này (tối đa 2048 ký tự)..."
+                    disabled={askingFollowUp}
+                    className="custom-textarea"
+                    style={{
+                      width: '100%', padding: '8px 12px', borderRadius: 8,
+                      border: `1px solid ${charCount > 2048 ? 'rgba(235,94,85,0.6)' : 'rgba(229,193,88,0.2)'}`,
+                      background: 'rgba(0,0,0,0.2)', fontSize: '0.85rem',
+                      resize: 'vertical', outline: 'none', color: '#dfdbf0',
+                      boxSizing: 'border-box', minHeight: 'unset',
+                    }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 3, fontSize: '0.7rem' }}>
+                    <span style={{ color: charCount > 2048 ? '#eb5e55' : 'rgba(229,193,88,0.5)', fontWeight: charCount > 2048 ? 700 : 400 }}>
+                      {charCount > 2048 ? `⚠️ Đã vượt quá 2048 ký tự (${charCount})` : `${charCount} / 2048 ký tự`}
+                    </span>
+                    <span style={{ color: 'rgba(229,193,88,0.5)' }}>Còn lại {5 - followUps.length} lượt hỏi</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="submit"
+                    disabled={askingFollowUp || !userQuestion.trim() || !isCharCountValid}
+                    className="copy-main-btn"
+                    style={{
+                      padding: '7px 18px', fontSize: '0.82rem', width: 'auto',
+                      opacity: (askingFollowUp || !userQuestion.trim() || !isCharCountValid) ? 0.5 : 1,
+                      cursor: (askingFollowUp || !userQuestion.trim() || !isCharCountValid) ? 'not-allowed' : 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    {askingFollowUp ? '⏳ Đang gửi...' : '💬 Gửi câu hỏi'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '10px 14px', background: 'rgba(229,193,88,0.06)', borderRadius: 8, fontSize: '0.8rem', color: 'rgba(229,193,88,0.6)', border: '1px solid rgba(229,193,88,0.15)' }}>
+                ℹ️ Bạn đã sử dụng tối đa 5 câu hỏi thêm cho lượt luận giải này.
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleInterpret}
             className="reset-weights-btn"

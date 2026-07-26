@@ -58,7 +58,11 @@ export default function App() {
     saveReading,
     deleteMultipleReadings,
     clearHistory,
+    updateReadingData,
   } = useReadingsApi(isAuthenticated);
+
+  // Track active reading ID for AI conversation persistence
+  const [activeReadingId, setActiveReadingId] = useState(null);
 
   // Tải lịch sử khi mount hoặc khi auth state thay đổi
   useEffect(() => {
@@ -211,7 +215,9 @@ export default function App() {
             orientation: c.orientation
           }))
         };
-        saveReading(newHistoryItem);
+        saveReading(newHistoryItem).then(saved => {
+          if (saved?.id) setActiveReadingId(saved.id);
+        }).catch(() => {});
       }, 500);
 
     } catch (err) {
@@ -402,7 +408,18 @@ ${summaryObj.advice}
 
           {/* ── Manual Pick Mode (parallel) ── */}
           {activeMode === 'manual' && (
-            <ManualPickMode tarotCards={tarotCards} weights={weights} setWeights={setWeights} />
+            <ManualPickMode 
+              tarotCards={tarotCards} 
+              weights={weights} 
+              setWeights={setWeights}
+              activeReadingId={activeReadingId}
+              onSaveAiConversation={updateReadingData}
+              onSaveReading={(item) => {
+                saveReading(item).then(saved => {
+                  if (saved?.id) setActiveReadingId(saved.id);
+                }).catch(() => {});
+              }}
+            />
           )}
 
           {/* ── Random Draw Mode ── */}
@@ -678,6 +695,8 @@ ${summaryObj.advice}
                 interpretationContext={t('context.' + interpretationContext, CONTEXTS.find(c => c.id === interpretationContext)?.name)}
                 interpretationSummary={formattedSummaryText}
                 getCardMeaning={getCardMeaning}
+                readingId={activeReadingId}
+                onSaveAiConversation={updateReadingData}
               />
               <PromptExporter
                 question={currentDrawnQuestion}

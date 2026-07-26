@@ -15,7 +15,14 @@ const CONTEXTS_MANUAL = [
   { id: 'action',  labelVi: '⚖️ Lựa chọn',   labelEn: '⚖️ Choice' },
 ];
 
-export default function ManualPickMode({ tarotCards, weights, setWeights }) {
+export default function ManualPickMode({ 
+  tarotCards, 
+  weights, 
+  setWeights, 
+  activeReadingId, 
+  onSaveAiConversation, 
+  onSaveReading 
+}) {
   const { language } = useLanguage();
   const { isAuthenticated, login } = useAuth();
 
@@ -279,8 +286,11 @@ export default function ManualPickMode({ tarotCards, weights, setWeights }) {
           <div style={{ marginBottom: 24 }}>
             <AiInterpretationPanel
               question={question}
-              cards={drawnCards}
-              mode="manual"
+              drawnCards={drawnCards}
+              spreadName={language === 'en' ? `Manual Pick (${pickCount} cards)` : `Chọn từng lá (${pickCount} lá)`}
+              getCardMeaning={getCardMeaning}
+              readingId={activeReadingId}
+              onSaveAiConversation={onSaveAiConversation}
             />
           </div>
 

@@ -54,7 +54,7 @@ export function useReadingsApi(isAuthenticated) {
 
   // ─── Lưu 1 reading mới (Chỉ lưu khi đã đăng nhập) ──────────────────────────
   const saveReading = useCallback(async (newEntry) => {
-    if (!newEntry || !isAuthenticated) return;
+    if (!newEntry || !isAuthenticated) return null;
 
     try {
       const res = await fetch(`${SSO_BASE}/readings`, {
@@ -74,8 +74,10 @@ export function useReadingsApi(isAuthenticated) {
       const saved = data.reading;
       const mappedItem = { ...newEntry, id: saved.id, _remoteId: saved.id };
       setHistory((prev) => [mappedItem, ...prev]);
+      return mappedItem;
     } catch (err) {
       console.error('saveReading error:', err);
+      return null;
     }
   }, [isAuthenticated]);
 
