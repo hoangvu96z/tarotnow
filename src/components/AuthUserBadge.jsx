@@ -1,10 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 
-/**
- * AuthUserBadge — hiển thị avatar + tên user hoặc nút "Đăng nhập"
- * Dùng trong header của TarotNow
- */
+const SSO_BASE = import.meta.env.VITE_SSO_URL || 'https://sso.vunph.click';
+
 export default function AuthUserBadge() {
   const { user, isLoading, isAuthenticated, login, logout } = useAuth();
   const [open, setOpen] = useState(false);
@@ -120,7 +118,7 @@ export default function AuthUserBadge() {
 
           {user.role === 'admin' && (
             <a
-              href="https://sso.vunph.click/ui/admin"
+              href={`${SSO_BASE}/ui/admin`}
               style={{
                 width: '100%', padding: '8px 12px',
                 background: 'rgba(124, 92, 252, 0.15)',
