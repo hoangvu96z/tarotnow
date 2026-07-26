@@ -92,8 +92,15 @@ export default function App() {
     }
 
     setDrawnCards(cardsList);
-    setActiveReadingId(item._remoteId || item.id || null);
+    const targetId = item._remoteId || item.id || null;
+    setActiveReadingId(targetId);
     setSavedConversation(item.data?.aiConversation || null);
+
+    if (targetId) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('id', targetId);
+      window.history.pushState({ id: targetId }, '', url.toString());
+    }
 
     if (String(restoredSpread).startsWith('manual')) {
       setActiveMode('manual');
@@ -110,6 +117,19 @@ export default function App() {
   useEffect(() => {
     loadHistory();
   }, [loadHistory, isAuthenticated]);
+
+  // Auto-load quẻ/trải bài từ URL search param ?id=xxx khi history sẵn sàng
+  useEffect(() => {
+    if (!history || history.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const urlId = params.get('id');
+    if (urlId) {
+      const found = history.find(h => String(h.id) === String(urlId) || String(h._remoteId) === String(urlId));
+      if (found) {
+        handleSelectHistoryItem(found);
+      }
+    }
+  }, [history, handleSelectHistoryItem]);
 
   // Validation messages
   const [validationError, setValidationError] = useState('');
@@ -258,7 +278,12 @@ export default function App() {
           }))
         };
         saveReading(newHistoryItem).then(saved => {
-          if (saved?.id) setActiveReadingId(saved.id);
+          if (saved?.id) {
+            setActiveReadingId(saved.id);
+            const url = new URL(window.location.href);
+            url.searchParams.set('id', saved.id);
+            window.history.pushState({ id: saved.id }, '', url.toString());
+          }
         }).catch(() => {});
       }, 500);
 
