@@ -244,8 +244,8 @@ export default function AiInterpretationPanel({
     const gLabel = t('export.prompt_guide', 'HƯỚNG DẪN GIẢI NGHĨA CHO AI:');
     const rLabel = t('export.prompt_req', 'Yêu cầu định dạng phản hồi:');
     const rBullets = isEn
-      ? '- Use English, fluently, deeply and objectively.\n- Use clear section headers.\n- Conclude with actionable guidance.\n- At the end, provide exactly 3 concise suggested follow-up questions under:\n### 💡 Suggested Follow-up Questions:\n- 💡 Q1: [Question 1]\n- 💡 Q2: [Question 2]\n- 💡 Q3: [Question 3]'
-      : '- Sử dụng tiếng Việt, viết trôi chảy, sâu sắc và khách quan.\n- Có tiêu đề rõ ràng cho từng phần.\n- Kết luận bằng một thông điệp đúc kết hoặc hành động cụ thể tôi nên làm.\n- Cuối bài luận giải, đưa ra đúng 3 câu hỏi gợi ý đào sâu ngắn gọn cho người dùng ở phần:\n### 💡 Gợi ý 3 câu hỏi tiếp theo dành cho bạn:\n- 💡 Q1: [Câu hỏi 1]\n- 💡 Q2: [Câu hỏi 2]\n- 💡 Q3: [Câu hỏi 3]';
+      ? '- Use English, fluently, deeply and objectively.\n- Use clear section headers.\n- Conclude with actionable guidance.\n- AT THE VERY END OF YOUR RESPONSE, output exact delimiter line "---SUGGESTED_QUESTIONS---" followed by 3 concise follow-up questions:\n---SUGGESTED_QUESTIONS---\n1. [Question 1]\n2. [Question 2]\n3. [Question 3]'
+      : '- Sử dụng tiếng Việt, viết trôi chảy, sâu sắc và khách quan.\n- Có tiêu đề rõ ràng cho từng phần.\n- Kết luận bằng một thông điệp đúc kết hoặc hành động cụ thể tôi nên làm.\n- Ở CUỐI BÀI VIẾT, hãy xuất đúng dòng phân cách "---SUGGESTED_QUESTIONS---" theo sau là 3 câu hỏi đào sâu ngắn gọn dành riêng cho bài này:\n---SUGGESTED_QUESTIONS---\n1. [Câu hỏi 1]\n2. [Câu hỏi 2]\n3. [Câu hỏi 3]';
 
     return `${sysRole}\n\n${qLabel}\n"${question}"\n\n${dLabel}\n${cardsSection}\n${interpretationSummary ? `\n${sLabel}\n${interpretationSummary}\n` : ''}\n${gLabel}\n${instruction}\n\n${rLabel}\n${rBullets}`;
   };
@@ -822,7 +822,7 @@ export default function AiInterpretationPanel({
       {!loading && interpretation && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ background: 'rgba(0,0,0,0.25)', border: '1px solid rgba(229,193,88,0.15)', borderRadius: '8px', padding: '20px' }}>
-            <div dangerouslySetInnerHTML={{ __html: parseMarkdown(interpretation) }} />
+            <div dangerouslySetInnerHTML={{ __html: parseMarkdown(displayInterpretation) }} />
           </div>
 
           {/* ─── Follow-up Q&A Chat Section ─────────────────────────────── */}
@@ -853,18 +853,16 @@ export default function AiInterpretationPanel({
                       </div>
                     </div>
                     {/* Answer bubble */}
-                    {fu.answer && (
-                      <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                        <div style={{ maxWidth: '85%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px 12px 12px 12px', padding: '10px 14px' }}>
-                          <div style={{ fontSize: '0.82rem', color: '#dfdbf0', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{fu.answer}</div>
-                          {fu.answerTimestamp && (
-                            <div style={{ fontSize: '0.68rem', color: 'rgba(229,193,88,0.4)', marginTop: 3, fontFamily: 'monospace' }}>
-                              🕐 {new Date(fu.answerTimestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                            </div>
-                          )}
-                        </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                      <div style={{ maxWidth: '85%', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '4px 12px 12px 12px', padding: '10px 14px' }}>
+                        <div style={{ fontSize: '0.82rem', color: '#dfdbf0', lineHeight: 1.65 }} dangerouslySetInnerHTML={{ __html: parseMarkdown(fu.answer) }} />
+                        {fu.answerTimestamp && (
+                          <div style={{ fontSize: '0.68rem', color: 'rgba(229,193,88,0.4)', marginTop: 4, fontFamily: 'monospace' }}>
+                            🕐 {new Date(fu.answerTimestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -891,13 +889,13 @@ export default function AiInterpretationPanel({
             {followUps.length < 5 ? (
               <form onSubmit={handleSendFollowUp} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* 3 AI Suggested Questions Pill Buttons */}
-                {!askingFollowUp && (
+                {!askingFollowUp && aiSuggestedQuestions.length > 0 && (
                   <div>
                     <div style={{ fontSize: '0.78rem', color: '#c4b5fd', fontWeight: 600, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span>💡</span> {isEn ? 'AI Suggested Follow-up Questions (Click to ask immediately):' : 'AI gợi ý 3 câu hỏi tiếp theo (Bấm vào để hỏi ngay):'}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {suggestedQuestions.map((qText, idx) => (
+                      {aiSuggestedQuestions.map((qText, idx) => (
                         <button
                           key={idx}
                           type="button"
