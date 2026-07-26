@@ -88,16 +88,25 @@ export function AuthProvider({ children }) {
       const storedToken = localStorage.getItem('sso_token');
       const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
 
-      await fetch(`${SSO_BASE}/sso/logout`, {
+      // Send async POST logout request
+      fetch(`${SSO_BASE}/sso/logout`, {
         method: 'POST',
         headers,
         credentials: 'include',
-      });
+      }).catch(() => {});
+
       localStorage.removeItem('sso_token');
       localStorage.setItem('vInfiSSO-state', JSON.stringify({ type: 'logout', t: Date.now() }));
       setUser(null);
+
+      // Single Sign-Out: Navigate browser to SSO /sso/logout endpoint to clear sso.vunph.click cookies & session
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete('sso_token');
+      window.location.href = `${SSO_BASE}/sso/logout?redirect=${encodeURIComponent(currentUrl.toString())}`;
     } catch (e) {
       console.error('Logout failed', e);
+      localStorage.removeItem('sso_token');
+      setUser(null);
     }
   };
 
