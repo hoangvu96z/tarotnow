@@ -23,6 +23,8 @@ export function AuthProvider({ children }) {
         const newSearch = urlParams.toString();
         const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '') + window.location.hash;
         window.history.replaceState({}, document.title, newUrl);
+        // Xóa flag logout vì user đang đăng nhập lại
+        localStorage.removeItem('sso_logged_out');
       }
 
       // 2. Đọc token từ localStorage
@@ -41,6 +43,8 @@ export function AuthProvider({ children }) {
       const data = await res.json();
 
       if (data.user) {
+        // Xóa flag logout khi xác thực thành công
+        localStorage.removeItem('sso_logged_out');
         setUser(data.user);
         if (data.token) {
           localStorage.setItem('sso_token', data.token);
