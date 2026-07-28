@@ -46,7 +46,7 @@ export function usePlan(isAuthenticated) {
         return;
       }
 
-      const res = await fetch(`${SSO_BASE}/plans/my-quota`, {
+      const res = await fetch(`${SSO_BASE}/plans/my-quota?app=tarotnow`, {
         headers: getAuthHeaders(),
         credentials: 'include',
       });
@@ -73,8 +73,9 @@ export function usePlan(isAuthenticated) {
     try {
       const res = await fetch(`${SSO_BASE}/plans/consume`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({ app: 'tarotnow' }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -101,8 +102,9 @@ export function usePlan(isAuthenticated) {
     try {
       const res = await fetch(`${SSO_BASE}/plans/bonus`, {
         method: 'POST',
-        headers: getAuthHeaders(),
+        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify({ app: 'tarotnow' }),
       });
       const data = await res.json();
       if (res.ok) {
