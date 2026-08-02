@@ -120,6 +120,12 @@ export default function PricingModal({
     return `${price.toLocaleString('vi-VN')}đ`;
   };
 
+  // Điều hướng sang trang thanh toán SSO, kèm gói đã chọn và URL quay về app
+  const goToPayment = (planName) => {
+    const returnUrl = encodeURIComponent(window.location.href);
+    window.location.href = `${SSO_BASE}/ui/payment?plan=${encodeURIComponent(planName)}&redirect=${returnUrl}`;
+  };
+
   const getFeatures = (p) => {
     const dailyText = isEn
       ? (p.dailyLimit === -1 ? 'Unlimited daily AI questions' : `${p.dailyLimit} AI questions/day`)
@@ -358,7 +364,7 @@ export default function PricingModal({
 
                 <button
                   disabled={isCurrent || isOverride || currentPlan === 'admin'}
-                  onClick={() => alert(isEn ? 'Please contact Admin to upgrade your plan!' : 'Liên hệ admin để nâng cấp gói!')}
+                  onClick={() => goToPayment(plan.name)}
                   style={{
                     width: '100%',
                     padding: '10px',
